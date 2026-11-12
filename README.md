@@ -8,6 +8,8 @@ Feel free to report bugs or contribute to the project.
 
 This is `sm64coopdx-bare`, a fork of sm64coopdx that removes unused code. Its goal is a smaller, easier to maintain codebase: dead US/PC-only paths, unused runtime buffers, and other unreachable code are stripped out, while the multiplayer, Lua API, and modding features remain intact.
 
+One of the reasons for this fork is to make working with AI agents simpler. By reducing the amount of garbage in the codebase, there is less irrelevant context to sift through, which reduces token usage and makes agent-assisted development more efficient.
+
 ## Initial Goal (Accomplished)
 Create a mod for the PC port where multiple people can play together online.
 
