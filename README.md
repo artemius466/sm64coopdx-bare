@@ -4,6 +4,10 @@ sm64coopdx is an online multiplayer project for the Super Mario 64 PC port that 
 
 Feel free to report bugs or contribute to the project.
 
+## About This Fork
+
+This is `sm64coopdx-bare`, a fork of sm64coopdx that removes unused code. Its goal is a smaller, easier to maintain codebase: dead US/PC-only paths, unused runtime buffers, and other unreachable code are stripped out, while the multiplayer, Lua API, and modding features remain intact.
+
 ## Initial Goal (Accomplished)
 Create a mod for the PC port where multiple people can play together online.
 
