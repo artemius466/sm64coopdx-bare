@@ -16,9 +16,7 @@
 #include "shape_helper.h"
 #include "skin.h"
 
-#ifndef VERSION_EU
 #include <prevent_bss_reordering.h>
-#endif
 
 // data
 struct ObjGroup *gMarioFaceGrp = NULL;     // @ 801A82E0; returned by load_dynlist
@@ -49,8 +47,6 @@ UNUSED static u32 sUnrefSpaceC70; // @ 801BAC70
 static struct ObjPlane *D_801BAC74;
 static struct ObjPlane *D_801BAC78; // sShapeNetHead?
 UNUSED static u8 sUnrefSpaceC80[0x1C];     // @ 801BAC80
-static struct ObjFace *D_801BAC9C;
-static struct ObjFace *D_801BACA0;
 UNUSED static u8 sUnrefSpaceCA8[0x10]; // @ 801BACA8
 /// factor for scaling vertices in an `ObjShape` when calling `scale_verts_in_shape()`
 static struct GdVec3f sVertexScaleFactor;
@@ -177,17 +173,6 @@ struct ObjFace *make_face_with_material(struct ObjMaterial *mtl) {
     newFace->mtl = mtl;
 
     return newFace;
-}
-
-/* @ 245F0C for 0x88 */
-void add_4_vertices_to_face(struct ObjFace *face, struct ObjVertex *vtx1, struct ObjVertex *vtx2,
-                     struct ObjVertex *vtx3, struct ObjVertex *vtx4) {
-    face->vertices[0] = vtx1;
-    face->vertices[1] = vtx2;
-    face->vertices[2] = vtx3;
-    face->vertices[3] = vtx4;
-    face->vtxCount = 4;
-    calc_face_normal(face);
 }
 
 /* @ 245F94 for 0x78; orig name: func_801977C4 */
@@ -411,11 +396,6 @@ s32 getint(s32 *intPtr) {
     return !!bufCsr;
 }
 
-/* @ 246838 for 0x14 */
-void Unknown80198068(UNUSED f32 a0) {
-    printf("max=%f\n", a0);
-}
-
 /* @ 24684C for 0x6C */
 void func_8019807C(struct ObjVertex *vtx) {
     gd_rot_2d_vec(D_801BAC60.x, &vtx->pos.y, &vtx->pos.z);
@@ -428,23 +408,6 @@ void func_801980E8(f32 *a0) {
     gd_rot_2d_vec(D_801BAC60.x, &a0[1], &a0[2]);
     gd_rot_2d_vec(D_801BAC60.y, &a0[0], &a0[2]);
     gd_rot_2d_vec(D_801BAC60.z, &a0[0], &a0[1]);
-}
-
-/* @ 246924 for 0x30 */
-void Unknown80198154(f32 x, f32 y, f32 z) {
-    D_801BAC60.x = x;
-    D_801BAC60.y = y;
-    D_801BAC60.z = z;
-}
-
-/* @ 246954 for 0x6c */
-void Unknown80198184(struct ObjShape *shape, f32 x, f32 y, f32 z) {
-    UNUSED struct GdVec3f unusedVec;
-    unusedVec.x = x;
-    unusedVec.y = y;
-    unusedVec.z = z;
-
-    apply_to_obj_types_in_group(OBJ_TYPE_VERTICES, (applyproc_t) func_8019807C, shape->vtxGroup);
 }
 
 /* @ 2469C0 for 0xc8 */
@@ -527,25 +490,6 @@ void Unknown80198524(struct ObjVertex *vtx) {
     vtx->pos.x /= D_801A8668;
     vtx->pos.y /= D_801A8668;
     vtx->pos.z /= D_801A8668;
-}
-
-/* @ 246DB8 for 0x11c */
-void Unknown801985E8(struct ObjShape *shape) {
-    struct GdBoundingBox bbox;
-
-    D_801A8668 = 0.0;
-    reset_bounding_box();
-    apply_to_obj_types_in_group(OBJ_TYPE_VERTICES, (applyproc_t) Unknown80198444, shape->vtxGroup);
-
-    get_some_bounding_box(&bbox);
-
-    sShapeCenter.x = (f32)((bbox.minX + bbox.maxX) / 2.0); //? 2.0f
-    sShapeCenter.y = (f32)((bbox.minY + bbox.maxY) / 2.0); //? 2.0f
-    sShapeCenter.z = (f32)((bbox.minZ + bbox.maxZ) / 2.0); //? 2.0f
-
-    gd_print_vec("c=", &sShapeCenter);
-
-    apply_to_obj_types_in_group(OBJ_TYPE_VERTICES, (applyproc_t) Unknown80198524, shape->vtxGroup);
 }
 
 /* @ 246ED4 for 0x4FC; orig name: func_80198704 */
@@ -953,168 +897,6 @@ void read_ARK_shape(struct ObjShape *shape, char *fileName) {
     gd_fclose(sGdShapeFile);
 }
 
-/* @ 247E30 for 0x148; orig name: Unknown80199660 */
-struct GdFile *get_shape_from_file(struct ObjShape *shape, char *fileName) {
-    printf("Loading %s...\n", fileName);
-    start_memtracker(fileName);
-    shape->unk3C = 0;
-    shape->faceCount = 0;
-    shape->vtxCount = 0;
-
-    if (gd_str_contains(fileName, ".ark")) {
-        read_ARK_shape(shape, fileName);
-    } else {
-        sGdShapeFile = gd_fopen(fileName, "r");
-
-        if (sGdShapeFile == NULL) {
-            fatal_printf("Cant open shape '%s'", fileName);
-        }
-
-        sGdLineBufCsr = 0;
-        sGdLineBuf[sGdLineBufCsr] = '\0';
-        load_next_line_into_buf();
-
-        if (is_next_buf_word("3DG1")) {
-            get_3DG1_shape(shape);
-        } else {
-            get_OBJ_shape(shape);
-        }
-
-        printf("Num Vertices=%d\n", shape->vtxCount);
-        printf("Num Faces=%d\n", shape->faceCount);
-        printf("\n");
-
-        gd_fclose(sGdShapeFile);
-    }
-
-    stop_memtracker(fileName);
-
-    return sGdShapeFile;
-}
-
-/* @ 247F78 for 0x69c; orig name: Unknown801997A8 */
-struct ObjShape *make_grid_shape(enum ObjTypeFlag gridType, s32 a1, s32 a2, s32 a3, s32 a4) {
-    UNUSED u32 pad1074;
-    void *objBuf[32][32] = { 0 }; // vertex or particle depending on gridType
-    f32 sp70;
-    f32 sp6C;
-    f32 sp68;
-    UNUSED u32 pad64;
-    UNUSED u32 pad60;
-    f32 sp5C;
-    s32 parI;
-    s32 row;
-    s32 col;
-    UNUSED s32 sp4C = 0;
-    struct ObjShape *gridShape;
-    f32 sp44;
-    struct ObjFace *sp40 = NULL;  // first made shape?
-    struct ObjGroup *parOrVtxGrp; // group of made particles or vertices (based on gridType)
-    UNUSED u32 pad38;
-    struct ObjGroup *mtlGroup;
-    struct GdVec3f *sp30;     // GdVec3f* ? from gd_get_colour
-    struct GdVec3f *sp2C;     //^
-    struct ObjMaterial *mtl1; // first made material
-    struct ObjMaterial *mtl2; // second made material
-    UNUSED u32 pad20;
-
-    sp30 = (struct GdVec3f *) gd_get_colour(a1);
-    sp2C = (struct GdVec3f *) gd_get_colour(a2);
-
-    mtl1 = make_material(0, NULL, 1);
-    set_cur_dynobj((struct GdObj *) mtl1);
-    d_set_diffuse(sp30->x, sp30->y, sp30->z);
-    mtl1->type = 0x40;
-
-    mtl2 = make_material(0, NULL, 2);
-    set_cur_dynobj((struct GdObj *) mtl2);
-    d_set_diffuse(sp2C->x, sp2C->y, sp2C->z);
-    mtl2->type = 0x40;
-
-    mtlGroup = make_group(2, mtl1, mtl2);
-    gridShape = make_shape(0, "grid");
-    gridShape->faceCount = 0;
-    gridShape->vtxCount = 0;
-
-    sp44 = 2.0 / a3; //? 2.0f
-    sp5C = -1.0f;
-    sp6C = 0.0f;
-    sp70 = -1.0f;
-
-    for (col = 0; col <= a4; col++) {
-        sp68 = sp5C;
-        for (row = 0; row <= a3; row++) {
-            gridShape->vtxCount++;
-            if (gridType == OBJ_TYPE_VERTICES) {
-                objBuf[row][col] = gd_make_vertex(sp68, sp6C, sp70);
-            } else if (gridType == OBJ_TYPE_PARTICLES) {
-                objBuf[row][col] = make_particle(0, 0, sp68, sp6C + 2.0f, sp70);
-                ((struct ObjParticle *) objBuf[row][col])->unk44 = (1.0 + sp68) / 2.0;
-                ((struct ObjParticle *) objBuf[row][col])->unk48 = (1.0 + sp70) / 2.0;
-            }
-            sp68 += sp44;
-        }
-        sp70 += sp44;
-    }
-
-    for (col = 0; col < a4; col++) {
-        for (row = 0; row < a3; row++) {
-            gridShape->faceCount += 2;
-            if (a1 != a2) {
-                if ((row + col) & 1) {
-                    D_801BAC9C = make_face_with_material(mtl1);
-                    D_801BACA0 = make_face_with_material(mtl1);
-                } else {
-                    D_801BAC9C = make_face_with_material(mtl2);
-                    D_801BACA0 = make_face_with_material(mtl2);
-                }
-            } else {
-                D_801BAC9C = make_face_with_material(mtl1);
-                D_801BACA0 = make_face_with_material(mtl2);
-            }
-
-            if (sp40 == NULL) {
-                sp40 = D_801BAC9C;
-            }
-
-            add_3_vtx_to_face(D_801BAC9C, objBuf[row][col + 1], objBuf[row + 1][col + 1],
-                              objBuf[row][col]);
-            add_3_vtx_to_face(D_801BACA0, objBuf[row + 1][col + 1], objBuf[row + 1][col],
-                              objBuf[row][col]);
-        }
-    }
-
-    if (gridType == OBJ_TYPE_PARTICLES) {
-        for (parI = 0; parI <= a3; parI++) {
-            struct ObjParticle* p1 = ((struct ObjParticle *) objBuf[parI][0]);
-            if (p1 != NULL) { p1->flags |= 2; }
-            struct ObjParticle* p2 =  ((struct ObjParticle *) objBuf[parI][a4]);
-            if (p2 != NULL) { p2->flags |= 2; }
-        }
-
-        for (parI = 0; parI <= a4; parI++) {
-            struct ObjParticle* p1 = ((struct ObjParticle *) objBuf[0][parI]);
-            if (p1 != NULL) { p1->flags |= 2; }
-            struct ObjParticle* p2 = ((struct ObjParticle *) objBuf[a3][parI]);
-            if (p2 != NULL) { p2->flags |= 2; }
-        }
-    }
-
-    parOrVtxGrp = make_group_of_type(gridType, (struct GdObj *) objBuf[0][0], NULL);
-    gridShape->vtxGroup = parOrVtxGrp;
-    gridShape->mtlGroup = mtlGroup;
-
-    gridShape->faceGroup = group_faces_in_mtl_grp(gridShape->mtlGroup, (struct GdObj *) sp40, NULL);
-
-    printf("grid: points=%d, faces=%d\n", gridShape->vtxGroup->id, gridShape->faceGroup->id);
-    return gridShape;
-}
-
-/* @ 248614 for 0x44 */
-void Unknown80199E44(UNUSED s32 a0, struct GdObj *a1, struct GdObj *a2, UNUSED s32 a3) {
-    UNUSED struct ObjGroup *sp1C = make_group(2, a1, a2);
-}
-
 /* @ 248658 for 0x5c */
 void Unknown80199E88(struct ObjFace *face) {
     D_801BAC74 = make_plane(FALSE, face);
@@ -1436,84 +1218,4 @@ void load_shapes2(void) {
     create_gddl_for_shapes(sCubeShapeGroup);
 
     imout();
-}
-
-/* @ 249368 -> 249594 */
-struct ObjGroup *Unknown8019AB98(UNUSED u32 a0) {
-    struct ObjLight *light1;
-    struct ObjLight *light2;
-    struct GdObj *oldObjHead = gGdObjectList; // obj head node before making lights
-
-    light1 = make_light(0, NULL, 0);
-    light1->position.x = 100.0f;
-    light1->position.y = 200.0f;
-    light1->position.z = 300.0f;
-
-    light1->diffuse.r = 1.0f;
-    light1->diffuse.g = 0.0f;
-    light1->diffuse.b = 0.0f;
-
-    light1->unk30 = 1.0f;
-
-    light1->unk68.x = 0.4f;
-    light1->unk68.y = 0.9f;
-
-    light1->unk80.x = 4.0f;
-    light1->unk80.y = 4.0f;
-    light1->unk80.z = 2.0f;
-
-    light2 = make_light(0, NULL, 1);
-    light2->position.x = 100.0f;
-    light2->position.y = 200.0f;
-    light2->position.z = 300.0f;
-
-    light2->diffuse.r = 0.0f;
-    light2->diffuse.g = 0.0f;
-    light2->diffuse.b = 1.0f;
-
-    light2->unk30 = 1.0f;
-
-    light2->unk80.x = -4.0f;
-    light2->unk80.y = 4.0f;
-    light2->unk80.z = -2.0f;
-
-    gGdLightGroup = make_group_of_type(OBJ_TYPE_LIGHTS, oldObjHead, NULL);
-
-    return gGdLightGroup;
-}
-
-/* @ 249594 for 0x100 */
-struct ObjGroup *Unknown8019ADC4(UNUSED u32 a0) {
-    UNUSED struct ObjLight *unusedLight;
-    struct ObjLight *newLight;
-    struct GdObj *oldObjHead;
-
-    unusedLight = make_light(0, NULL, 0);
-    oldObjHead = gGdObjectList;
-    newLight = make_light(0, NULL, 0);
-
-    newLight->position.x = 0.0f;
-    newLight->position.y = -500.0f;
-    newLight->position.z = 0.0f;
-
-    newLight->diffuse.r = 1.0f;
-    newLight->diffuse.g = 0.0f;
-    newLight->diffuse.b = 0.0f;
-
-    newLight->unk30 = 1.0f;
-
-    gGdLightGroup = make_group_of_type(OBJ_TYPE_LIGHTS, oldObjHead, NULL);
-
-    return gGdLightGroup;
-}
-
-/* @ 249694 for 0x5c */
-struct ObjGroup *Unknown8019AEC4(UNUSED u32 a0) {
-    UNUSED u32 sp24;
-    UNUSED u32 sp20;
-    UNUSED struct GdObj *sp1C;
-
-    sp1C = gGdObjectList;
-    gGdLightGroup = make_group(0);
-    return gGdLightGroup;
 }

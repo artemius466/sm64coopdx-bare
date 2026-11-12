@@ -83,11 +83,6 @@ void piranha_plant_act_sleeping(void) {
      * Make Piranha Plants harmless, but tangible, while they sleep.
      */
     o->oDamageOrCoinValue = 0;
-#elif defined(VERSION_EU)
-    /**
-     * Make Piranha Plants harmful when sleeping - but do it explicitly.
-     */
-    o->oDamageOrCoinValue = 3;
 #endif
 
     struct Object* player = nearest_player_to_object(o);

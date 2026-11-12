@@ -18,7 +18,6 @@
 #include "object_list_processor.h"
 #include "obj_behaviors.h"
 #include "platform_displacement.h"
-#include "profiler.h"
 #include "rendering_graph_node.h"
 #include "spawn_object.h"
 #include "first_person_cam.h"
@@ -499,9 +498,7 @@ void spawn_objects_from_info(UNUSED s32 unused, struct SpawnInfo *spawnInfo) {
     //! (Spawning Displacement) On the Japanese version, Mario's platform object
     //  isn't cleared when transitioning between areas. This can cause Mario to
     //  receive displacement after spawning.
-#ifndef VERSION_JP
     clear_mario_platform();
-#endif
 
     if (gCurrAreaIndex == 2) {
         gCCMEnteredSlide |= 1;
@@ -653,25 +650,6 @@ void unload_deactivated_objects(void) {
     gTimeStopState &= ~TIME_STOP_UNKNOWN_0;
 }
 
-/**
- * Unused profiling function.
- */
-UNUSED static u16 unused_get_elapsed_time(u64 *cycleCounts, s32 index) {
-    u16 time;
-    f64 cycles;
-
-    cycles = cycleCounts[index] - cycleCounts[index - 1];
-    if (cycles < 0) {
-        cycles = 0;
-    }
-
-    time = (u16)(((u64) cycles * 1000000 / osClockRate) / 16667.0 * 1000.0);
-    if (time > 999) {
-        time = 999;
-    }
-
-    return time;
-}
 
 /**
  * Update all objects. This includes script execution, object collision detection,

@@ -37,11 +37,7 @@ enum DialogSound {
     DS_NONE = 0xff
 };
 
-#ifdef VERSION_JP
-#define DS_DIFF DS_KOOPA
-#else
 #define DS_DIFF DS_TUXIE
-#endif
 
 extern s32 gAudioErrorFlags;
 extern f32 gGlobalSoundSource[3];
@@ -55,9 +51,6 @@ extern u32 gAudioRandom;
 extern u8 gAudioSPTaskYieldBuffer[]; // ucode yield data ptr; only used in JP
 
 struct SPTask *create_next_audio_frame_task(void);
-#ifdef VERSION_SH
-struct SPTask *func_sh_802f5a80(void);
-#endif
 /* |description|Plays a sound (`soundBits`) at `pos` (usually `gGlobalSoundSource` or `m.header.gfx.cameraToObject`)|descriptionEnd| */
 void play_sound(s32 soundBits, f32 *pos);
 /* |description|Plays a sound (`soundBits`) with `freqScale` at `pos` (usually `gGlobalSoundSource` or `m.header.gfx.cameraToObject`)|descriptionEnd| */
@@ -139,10 +132,6 @@ void sound_reset_background_music_default_volume(u8 seqId);
 /* |description|Sets a sequence's (`seqId`) volume to `volume`|descriptionEnd| */
 void sound_set_background_music_default_volume(u8 seqId, u8 volume);
 
-#if defined(VERSION_EU) || defined(VERSION_SH)
-struct SPTask *unused_80321460();
-struct SPTask *unused_80321460(void);
-#endif
 
 /* |description|Gets a sound left/right pan using `x` and `z`|descriptionEnd| */
 f32 get_sound_pan(f32 x, f32 z);

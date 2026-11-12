@@ -470,7 +470,7 @@ SRC_DIRS := src src/engine src/game src/audio src/menu src/buffers actors levels
 BIN_DIRS := bin bin/$(VERSION)
 
 # PC files
-SRC_DIRS += src/pc src/pc/gfx src/pc/audio src/pc/controller src/pc/fs src/pc/fs/packtypes src/pc/mods src/pc/dev src/pc/network src/pc/network/packets src/pc/network/socket src/pc/network/coopnet src/pc/utils src/pc/utils/miniz src/pc/djui src/pc/lua src/pc/lua/utils src/pc/os
+SRC_DIRS += src/pc src/pc/gfx src/pc/audio src/pc/controller src/pc/fs src/pc/fs/packtypes src/pc/mods src/pc/dev src/pc/network src/pc/network/packets src/pc/network/socket src/pc/network/coopnet src/pc/utils src/pc/utils/miniz src/pc/djui src/pc/lua src/pc/lua/utils
 
 ifeq ($(DISCORD_SDK),1)
   SRC_DIRS += src/pc/discord
@@ -517,7 +517,6 @@ ifeq ($(TARGET_N64),0)
 	  guTranslateF.c \
 	  ldiv.c
 
-	C_FILES           := $(filter-out src/game/main.c,$(C_FILES))
 	ULTRA_C_FILES     := $(addprefix lib/src/,$(ULTRA_C_FILES))
 endif
 
@@ -1175,7 +1174,6 @@ $(BUILD_DIR)/$(PALETTES_DIR):
 
 ifeq ($(TARGET_N64),1)
 	$(BUILD_DIR)/asm/boot.o:              $(IPL3_RAW_FILES)
-	$(BUILD_DIR)/src/game/crash_screen.o: $(CRASH_TEXTURE_C_FILES)
 	$(BUILD_DIR)/lib/rsp.o:               $(BUILD_DIR)/rsp/rspboot.bin $(BUILD_DIR)/rsp/fast3d.bin $(BUILD_DIR)/rsp/audio.bin
 endif
 
@@ -1421,7 +1419,6 @@ ifeq ($(COMPILER),ido)
   $(BUILD_DIR)/lib/src/al%.o:        OPT_FLAGS := -O3
   # For the asm-processor, since it doesn't support -O3. Probably not actually compiled with these flags.
   ifeq ($(VERSION),sh)
-    $(BUILD_DIR)/lib/src/unk_shindou_file.o: OPT_FLAGS := -O1
     $(BUILD_DIR)/lib/src/func_sh_80304D20.o: OPT_FLAGS := -O1
     $(BUILD_DIR)/lib/src/_Printf.o: OPT_FLAGS := -O3
     $(BUILD_DIR)/lib/src/contramread.o: OPT_FLAGS := -O1

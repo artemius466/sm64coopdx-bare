@@ -120,21 +120,6 @@ struct Object *try_allocate_object(struct ObjectNode *destList, struct ObjectNod
 }
 
 /**
- * Remove the node from the doubly linked list it's in, and place it in the
- * singly linked freeList.
- * This function seems to have been replaced by deallocate_object.
- */
-void unused_deallocate(struct LinkedList *freeList, struct LinkedList *node) {
-    if (!node || !freeList) { return; }
-    // Remove from doubly linked list
-    node->next->prev = node->prev;
-    node->prev->next = node->next;
-
-    // Insert at beginning of singly linked list
-    node->next = freeList->next;
-    freeList->next = node;
-}
-/**
  * Remove the given object from the object list that it's currently in, and
  * insert it at the beginning of the free list (singly linked).
  */

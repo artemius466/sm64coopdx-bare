@@ -348,9 +348,7 @@ struct ObjZone *make_zone(struct ObjGroup *a0, struct GdBoundingBox *bbox, struc
     newZone->unk30 = a0;
 
 //! @bug Created `ObjZone` is not returned
-#ifdef AVOID_UB
     return newZone;
-#endif
 }
 
 /* @ 22AF70 for 0x60 */
@@ -1055,9 +1053,7 @@ struct GdObj *func_8017E2F0(struct GdObj *obj, enum ObjTypeFlag type) {
     }
 
 //! @bug Nothing is returned if a GdObj of `type` is not found
-#ifdef AVOID_UB
     return NULL;
-#endif
 }
 
 /**
@@ -1079,11 +1075,7 @@ s32 apply_to_obj_types_in_group(s32 types, applyproc_t func, struct ObjGroup *gr
     //! @bug When `group` pointer is NULL, garbage is returned, not the
     //!      count of `fn` calls
     if (group == NULL) {
-#ifdef AVOID_UB
         return fnAppliedCount;
-#else
-        return;
-#endif
     }
 
     if (group->linkType & 1) { // compressed data, not an Obj

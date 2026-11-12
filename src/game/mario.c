@@ -275,15 +275,11 @@ void play_sound_if_no_flag(struct MarioState *m, u32 soundBits, u32 flags) {
 void play_mario_jump_sound(struct MarioState *m) {
     if (!m) { return; }
     if (!(m->flags & MARIO_MARIO_SOUND_PLAYED)) {
-#ifndef VERSION_JP
         if (m->action == ACT_TRIPLE_JUMP) {
             play_character_sound_offset(m, CHAR_SOUND_YAHOO_WAHA_YIPPEE, ((gAudioRandom % 5) << 16));
         } else {
-#endif
             play_character_sound_offset(m, CHAR_SOUND_YAH_WAH_HOO, ((gAudioRandom % 3) << 16));
-#ifndef VERSION_JP
         }
-#endif
         m->flags |= MARIO_MARIO_SOUND_PLAYED;
     }
 }
@@ -1437,27 +1433,6 @@ void squish_mario_model(struct MarioState *m) {
     if (m->bounceSquishTimer > 0) { m->bounceSquishTimer--; }
 }
 
-/**
- * Debug function that prints floor normal, velocity, and action information.
- */
-void debug_print_speed_action_normal(struct MarioState *m) {
-    if (!m) { return; }
-    f32 steepness;
-    f32 floor_nY;
-
-    if (gShowDebugText) {
-        steepness = sqrtf(
-            ((m->floor->normal.x * m->floor->normal.x) + (m->floor->normal.z * m->floor->normal.z)));
-        floor_nY = m->floor->normal.y;
-
-        print_text_fmt_int(210, 88, "ANG %d", (atan2s(floor_nY, steepness) * 180.0f) / 32768.0f);
-
-        print_text_fmt_int(210, 72, "SPD %d", m->forwardVel);
-
-        // STA short for "status," the official action name via SMS map.
-        print_text_fmt_int(210, 56, "STA %x", (m->action & ACT_ID_MASK));
-    }
-}
 
 /**
  * Update the button inputs for Mario.
@@ -1635,8 +1610,6 @@ void update_mario_inputs(struct MarioState *m) {
     }
 
     update_mario_geometry_inputs(m);
-
-    debug_print_speed_action_normal(m);
 
     /* Developer stuff */
 #ifdef DEVELOPMENT
@@ -1946,26 +1919,6 @@ void mario_update_hitbox_and_cap_model(struct MarioState *m) {
     }
 }
 
-/**
- * An unused and possibly a debug function. Z + another button input
- * sets Mario with a different cap.
- */
-UNUSED static void debug_update_mario_cap(u16 button, s32 flags, u16 capTimer, u16 capMusic) {
-    // This checks for Z_TRIG instead of Z_DOWN flag
-    // (which is also what other debug functions do),
-    // so likely debug behavior rather than unused behavior.
-    if ((gPlayer1Controller->buttonDown & Z_TRIG) && (gPlayer1Controller->buttonPressed & button)
-        && !(gMarioState->flags & flags)) {
-        gMarioState->flags |= (flags + MARIO_CAP_ON_HEAD);
-
-        if (capTimer > gMarioState->capTimer) {
-            gMarioState->capTimer = capTimer;
-        }
-
-        play_cap_music(capMusic);
-    }
-}
-
 void queue_particle_rumble(void) {
     if (gMarioState->particleFlags & PARTICLE_HORIZONTAL_STAR) {
         queue_rumble_data_mario(gMarioState, 5, 80);
@@ -2077,9 +2030,7 @@ s32 execute_mario_action(UNUSED struct Object *o) {
         if (gMarioState->isSnoring && gMarioState->action != ACT_SLEEPING) {
                 stop_sound(get_character(gMarioState)->soundSnoring1, gMarioState->marioObj->header.gfx.cameraToObject);
                 stop_sound(get_character(gMarioState)->soundSnoring2, gMarioState->marioObj->header.gfx.cameraToObject);
-#ifndef VERSION_JP
                 stop_sound(get_character(gMarioState)->soundSnoring3, gMarioState->marioObj->header.gfx.cameraToObject);
-#endif
                 gMarioState->isSnoring = FALSE;
         }
 
@@ -2164,16 +2115,12 @@ s32 execute_mario_action(UNUSED struct Object *o) {
         extern bool gDjuiInMainMenu;
         if (gMarioState->floor && gMarioState->floor->type == SURFACE_HORIZONTAL_WIND && !gDjuiInMainMenu) {
             spawn_wind_particles(0, (gMarioState->floor->force << 8));
-#ifndef VERSION_JP
             play_sound(SOUND_ENV_WIND2, gMarioState->marioObj->header.gfx.cameraToObject);
-#endif
         }
 
         if (gMarioState->floor && gMarioState->floor->type == SURFACE_VERTICAL_WIND) {
             spawn_wind_particles(1, 0);
-#ifndef VERSION_JP
             play_sound(SOUND_ENV_WIND2, gMarioState->marioObj->header.gfx.cameraToObject);
-#endif
         }
 
         play_infinite_stairs_music();

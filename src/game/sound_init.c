@@ -11,7 +11,6 @@
 #include "main.h"
 #include "paintings.h"
 #include "print.h"
-#include "profiler.h"
 #include "save_file.h"
 #include "seq_ids.h"
 #include "sm64.h"
@@ -375,16 +374,10 @@ void thread4_sound(UNUSED void *arg) {
         osRecvMesg(&sSoundMesgQueue, &msg, OS_MESG_BLOCK);
         if (gResetTimer < 25) {
             struct SPTask *spTask;
-            profiler_log_thread4_time();
-#ifdef VERSION_SH
-            spTask = func_sh_802f5a80(); // The function was probably just moved to a different file. Don't kill me.
-#else
             spTask = create_next_audio_frame_task();
-#endif
             if (spTask != NULL) {
                 dispatch_audio_sptask(spTask);
             }
-            profiler_log_thread4_time();
         }
     }
 }

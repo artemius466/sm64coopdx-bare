@@ -8,20 +8,6 @@
 #include "spawn_object.h"
 #include "pc/network/network_player.h"
 
-struct Object *debug_print_obj_collision(struct Object *a) {
-    if (!a) { return NULL; }
-    struct Object *sp24;
-
-    for (s32 i = 0; i < a->numCollidedObjs; i++) {
-        print_debug_top_down_objectinfo("ON", 0);
-        sp24 = a->collidedObjs[i];
-        if (sp24 != gMarioObject) {
-            return sp24;
-        }
-    }
-    return NULL;
-}
-
 int detect_player_hitbox_overlap(struct MarioState* local, struct MarioState* remote, f32 scale) {
     if (!local || !remote) { return FALSE; }
     if (local->marioObj == NULL || local->marioObj->oIntangibleTimer != 0) { return FALSE; }

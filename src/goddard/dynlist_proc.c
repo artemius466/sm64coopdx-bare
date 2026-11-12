@@ -355,30 +355,6 @@ void d_set_name_suffix(char *str) {
 }
 
 /**
- * Concatenate input `str` into a buffer that will be concatenated to a dynamic
- * `GdObj`'s name string when creating a new dynamic object. If input
- * is `NULL`, then a generic string is created based on the number of
- * unnamed objects.
- *
- * @note Not called
- */
-void d_append_to_name_suffix(char *str) {
-    char buf[0xff + 1];
-
-    if (str != NULL) {
-        if (str[0] == '\0') {
-            sprintf(buf, "__%d", ++sUnnamedObjCount);
-        } else {
-            gd_strcpy(buf, str);
-        }
-    } else {
-        buf[0] = '\0';
-    }
-
-    gd_strcat(sDynNameSuffix, buf);
-}
-
-/**
  * Stash the current string that is appended to a created dynamic `GdObj` name.
  */
 static void stash_name_suffix(void) {
@@ -424,25 +400,6 @@ static struct DynObjInfo *get_dynobj_info(DynObjName name) {
     }
 
     return foundDynobj;
-}
-
-/**
- * Reset the number of created dynamic objects and
- * free the dynamic object information list (`sGdDynObjList`).
- * The objects themselves still exist, though.
- *
- * @note Not called
- */
-void reset_dynamic_objs(void) {
-    UNUSED s32 pad;
-
-    if (sLoadedDynObjs == 0) {
-        return;
-    }
-
-    gd_free(sGdDynObjList);
-    sLoadedDynObjs = 0;
-    sGdDynObjList = NULL;
 }
 
 /**
@@ -628,11 +585,7 @@ struct GdObj *d_makeobj(enum DObjTypes type, DynObjName name) {
             d_makeobj(D_GROUP, name);
             ((struct ObjGroup *) sDynListCurObj)->linkType = 1;
 //! @bug Returns garbage when making `D_DATA_GRP` object
-#ifdef AVOID_UB
             return NULL;
-#else
-            return;
-#endif
         case D_CAMERA:
             dobj = &make_camera(0, NULL)->header;
             break;
@@ -1503,88 +1456,6 @@ void d_set_init_pos(f32 x, f32 y, f32 z) {
 }
 
 /**
- * Set the velocity of the current active dynamic object. The
- * values of the input `GdVec3f` are copied into the object.
- */
-void d_set_velocity(const struct GdVec3f *vel) {
-    struct GdObj *dynobj = sDynListCurObj;
-
-    if (sDynListCurObj == NULL) {
-        fatal_printf("proc_dynlist(): No current object");
-    }
-
-    switch (sDynListCurObj->type) {
-        case OBJ_TYPE_JOINTS:
-            ((struct ObjJoint *) dynobj)->velocity.x = vel->x;
-            ((struct ObjJoint *) dynobj)->velocity.y = vel->y;
-            ((struct ObjJoint *) dynobj)->velocity.z = vel->z;
-            break;
-        case OBJ_TYPE_NETS:
-            ((struct ObjNet *) dynobj)->velocity.x = vel->x;
-            ((struct ObjNet *) dynobj)->velocity.y = vel->y;
-            ((struct ObjNet *) dynobj)->velocity.z = vel->z;
-            break;
-        default:
-            fatal_printf("%s: Object '%s'(%x) does not support this function.", "dSetVelocity()",
-                         sDynListCurInfo->name, sDynListCurObj->type);
-    }
-}
-
-/**
- * Read the velocity value of the current dynamic object into `dst`
- *
- * @param[out] dst values are copied to this `GdVec3f`
- */
-void d_get_velocity(struct GdVec3f *dst) {
-    struct GdObj *dynobj = sDynListCurObj;
-
-    if (sDynListCurObj == NULL) {
-        fatal_printf("proc_dynlist(): No current object");
-    }
-
-    switch (sDynListCurObj->type) {
-        case OBJ_TYPE_JOINTS:
-            dst->x = ((struct ObjJoint *) dynobj)->velocity.x;
-            dst->y = ((struct ObjJoint *) dynobj)->velocity.y;
-            dst->z = ((struct ObjJoint *) dynobj)->velocity.z;
-            break;
-        case OBJ_TYPE_NETS:
-            dst->x = ((struct ObjNet *) dynobj)->velocity.x;
-            dst->y = ((struct ObjNet *) dynobj)->velocity.y;
-            dst->z = ((struct ObjNet *) dynobj)->velocity.z;
-            break;
-        default:
-            dst->x = dst->y = dst->z = 0.0f;
-            break;
-    }
-}
-
-/**
- * Set the torque vectore for the current dynamic object.
- * Values from input `GdVec3f` are copied into the object.
- *
- * @note Not called
- */
-void d_set_torque(const struct GdVec3f *src) {
-    struct GdObj *dynobj = sDynListCurObj;
-
-    if (sDynListCurObj == NULL) {
-        fatal_printf("proc_dynlist(): No current object");
-    }
-
-    switch (sDynListCurObj->type) {
-        case OBJ_TYPE_NETS:
-            ((struct ObjNet *) dynobj)->torque.x = src->x;
-            ((struct ObjNet *) dynobj)->torque.y = src->y;
-            ((struct ObjNet *) dynobj)->torque.z = src->z;
-            break;
-        default:
-            fatal_printf("%s: Object '%s'(%x) does not support this function.", "dSetTorque()",
-                         sDynListCurInfo->name, sDynListCurObj->type);
-    }
-}
-
-/**
  * Get the initial position of the current dynamic object and
  * store in `dst`.
  */
@@ -1715,38 +1586,6 @@ void d_set_rel_pos(f32 x, f32 y, f32 z) {
 }
 
 /**
- * Offset the current position of the current dynamic object.
- */
-void d_addto_rel_pos(struct GdVec3f *src) {
-    struct GdObj *dynobj = sDynListCurObj; // sp24
-
-    if (sDynListCurObj == NULL) {
-        fatal_printf("proc_dynlist(): No current object");
-    }
-
-    switch (sDynListCurObj->type) {
-        case OBJ_TYPE_VERTICES:
-            ((struct ObjVertex *) dynobj)->pos.x += src->x;
-            ((struct ObjVertex *) dynobj)->pos.y += src->y;
-            ((struct ObjVertex *) dynobj)->pos.z += src->z;
-            break;
-        case OBJ_TYPE_JOINTS:
-            ((struct ObjJoint *) dynobj)->unk3C.x += src->x;
-            ((struct ObjJoint *) dynobj)->unk3C.y += src->y;
-            ((struct ObjJoint *) dynobj)->unk3C.z += src->z;
-            break;
-        case OBJ_TYPE_PARTICLES:
-            ((struct ObjParticle *) dynobj)->pos.x += src->x;
-            ((struct ObjParticle *) dynobj)->pos.y += src->y;
-            ((struct ObjParticle *) dynobj)->pos.z += src->z;
-            break;
-        default:
-            fatal_printf("%s: Object '%s'(%x) does not support this function.", "dAddToRelPos()",
-                         sDynListCurInfo->name, sDynListCurObj->type);
-    }
-}
-
-/**
  * Store the current dynamic object's position into `dst`.
  */
 void d_get_rel_pos(struct GdVec3f *dst) {
@@ -1799,28 +1638,6 @@ struct ObjGroup *d_get_att_objgroup(void) {
             break; // lol
         default:
             fatal_printf("%s: Object '%s'(%x) does not support this function.", "dGetAttObjGroup()",
-                         sDynListCurInfo->name, sDynListCurObj->type);
-    }
-    // No null return due to `fatal_printf()` being a non-returning function?
-}
-
-/**
- * Return a pointer to the object that the current dynamic object is attached to.
- */
-struct GdObj *d_get_att_to_obj(void) {
-    if (sDynListCurObj == NULL) {
-        fatal_printf("proc_dynlist(): No current object");
-    }
-
-    switch (sDynListCurObj->type) {
-        case OBJ_TYPE_JOINTS:
-            return ((struct ObjJoint *) sDynListCurObj)->attachedToObj;
-            break; // lol
-        case OBJ_TYPE_NETS:
-            return ((struct ObjNet *) sDynListCurObj)->attachedToObj;
-            break; // lol
-        default:
-            fatal_printf("%s: Object '%s'(%x) does not support this function.", "dGetAttToObj()",
                          sDynListCurInfo->name, sDynListCurObj->type);
     }
     // No null return due to `fatal_printf()` being a non-returning function?
@@ -1939,63 +1756,6 @@ void d_set_att_to_offset(UNUSED u32 a) {
 }
 
 /**
- * Store the offset of the attached object into `dst`.
- *
- * @note Not called
- */
-void d_get_att_offset(struct GdVec3f *dst) {
-    if (sDynListCurObj == NULL) {
-        fatal_printf("proc_dynlist(): No current object");
-    }
-
-    switch (sDynListCurObj->type) {
-        case OBJ_TYPE_JOINTS:
-            dst->x = ((struct ObjJoint *) sDynListCurObj)->attachOffset.x;
-            dst->y = ((struct ObjJoint *) sDynListCurObj)->attachOffset.y;
-            dst->z = ((struct ObjJoint *) sDynListCurObj)->attachOffset.z;
-            break;
-        case OBJ_TYPE_NETS:
-            dst->x = ((struct ObjNet *) sDynListCurObj)->attachOffset.x;
-            dst->y = ((struct ObjNet *) sDynListCurObj)->attachOffset.y;
-            dst->z = ((struct ObjNet *) sDynListCurObj)->attachOffset.z;
-            break;
-        case OBJ_TYPE_PARTICLES:
-            break;
-        default:
-            fatal_printf("%s: Object '%s'(%x) does not support this function.", "dGetAttOffset()",
-                         sDynListCurInfo->name, sDynListCurObj->type);
-    }
-}
-
-/**
- * Get the attached object flags for the current dynamic object.
- */
-s32 d_get_att_flags(void) {
-    s32 attflag; // sp24
-
-    if (sDynListCurObj == NULL) {
-        fatal_printf("proc_dynlist(): No current object");
-    }
-
-    switch (sDynListCurObj->type) {
-        case OBJ_TYPE_JOINTS:
-            attflag = ((struct ObjJoint *) sDynListCurObj)->attachFlags;
-            break;
-        case OBJ_TYPE_NETS:
-            attflag = ((struct ObjNet *) sDynListCurObj)->attachFlags;
-            break;
-        case OBJ_TYPE_PARTICLES:
-            attflag = ((struct ObjParticle *) sDynListCurObj)->attachFlags;
-            break;
-        default:
-            fatal_printf("%s: Object '%s'(%x) does not support this function.", "dGetAttFlags()",
-                         sDynListCurInfo->name, sDynListCurObj->type);
-    }
-
-    return attflag;
-}
-
-/**
  * Set the world position of the current dynamic object.
  *
  * @note Sets the upper left coordinates of an `ObjView`
@@ -2068,31 +1828,6 @@ void d_set_normal(f32 x, f32 y, f32 z) {
             fatal_printf("%s: Object '%s'(%x) does not support this function.", "dSetNormal()",
                          sDynListCurInfo->name, sDynListCurObj->type);
     }
-}
-
-/**
- * Get a pointer to the world position vector of the active
- * dynamic object. This is a pointer inside the actual object.
- *
- * @note Not called.
- */
-struct GdVec3f *d_get_world_pos_ptr(void) {
-    if (sDynListCurObj == NULL) {
-        fatal_printf("proc_dynlist(): No current object");
-    }
-
-    switch (sDynListCurObj->type) {
-        case OBJ_TYPE_VERTICES:
-            return &((struct ObjVertex *) sDynListCurObj)->pos;
-            break;
-        case OBJ_TYPE_PARTICLES:
-            return &((struct ObjParticle *) sDynListCurObj)->pos;
-            break;
-        default:
-            fatal_printf("%s: Object '%s'(%x) does not support this function.", "dGetWorldPosPtr()",
-                         sDynListCurInfo->name, sDynListCurObj->type);
-    }
-    // No null return due to `fatal_printf()` being a non-returning function?
 }
 
 /**
@@ -2352,28 +2087,6 @@ void d_add_valptr(DynObjName name, u32 vflags, enum ValPtrType type, size_t offs
             break;
         default:
             fatal_printf("%s: Object '%s'(%x) does not support this function.", "dAddValPtr()",
-                         sDynListCurInfo->name, sDynListCurObj->type);
-    }
-}
-
-/**
- * Add a value processing function (`valptrproc_t`) to the current
- * dynamic `ObjLabel`.
- */
-void d_add_valproc(valptrproc_t proc) {
-    struct GdObj *dynobj;
-
-    if (sDynListCurObj == NULL) {
-        fatal_printf("proc_dynlist(): No current object");
-    }
-
-    dynobj = sDynListCurObj;
-    switch (sDynListCurObj->type) {
-        case OBJ_TYPE_LABELS:
-            ((struct ObjLabel *) dynobj)->valfn = proc;
-            break;
-        default:
-            fatal_printf("%s: Object '%s'(%x) does not support this function.", "dAddValProc()",
                          sDynListCurInfo->name, sDynListCurObj->type);
     }
 }
@@ -2941,55 +2654,6 @@ void d_get_matrix(Mat4f *dst) {
             break;
         default:
             fatal_printf("%s: Object '%s'(%x) does not support this function.", "dGetMatrix()",
-                         sDynListCurInfo->name, sDynListCurObj->type);
-    }
-}
-
-/**
- * Set the matrix of the current dynamic object by copying `src` into the object.
- */
-void d_set_matrix(Mat4f *src) {
-    if (sDynListCurObj == NULL) {
-        fatal_printf("proc_dynlist(): No current object");
-    }
-
-    switch (sDynListCurObj->type) {
-        case OBJ_TYPE_NETS:
-            gd_copy_mat4f(src, &((struct ObjNet *) sDynListCurObj)->mat128);
-            //! @bug When setting an `ObjNet` matrix, the source is copied twice
-            //!      due to a probable copy-paste line repeat error
-            gd_copy_mat4f(src, &((struct ObjNet *) sDynListCurObj)->mat128);
-            break;
-        case OBJ_TYPE_JOINTS:
-            gd_copy_mat4f(src, &((struct ObjJoint *) sDynListCurObj)->matE8);
-            break;
-        case OBJ_TYPE_CAMERAS:
-            gd_copy_mat4f(src, &((struct ObjCamera *) sDynListCurObj)->unk64);
-            break;
-        default:
-            fatal_printf("%s: Object '%s'(%x) does not support this function.", "dSetMatrix()",
-                         sDynListCurInfo->name, sDynListCurObj->type);
-    }
-}
-
-/**
- * Set the rotation matrix of the current dynamic object by copying
- * the input matrix `src`.
- */
-void d_set_rot_mtx(Mat4f *src) {
-    if (sDynListCurObj == NULL) {
-        fatal_printf("proc_dynlist(): No current object");
-    }
-
-    switch (sDynListCurObj->type) {
-        case OBJ_TYPE_JOINTS:
-            gd_copy_mat4f(src, &((struct ObjJoint *) sDynListCurObj)->mat128);
-            break;
-        case OBJ_TYPE_NETS:
-            gd_copy_mat4f(src, &((struct ObjNet *) sDynListCurObj)->mat168);
-            break;
-        default:
-            fatal_printf("%s: Object '%s'(%x) does not support this function.", "dSetRMatrix()",
                          sDynListCurInfo->name, sDynListCurObj->type);
     }
 }

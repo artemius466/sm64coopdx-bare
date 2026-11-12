@@ -77,7 +77,6 @@ void gd_dl_lookat(struct ObjCamera *cam, f32 arg1, f32 arg2, f32 arg3, f32 arg4,
 void check_tri_display(s32 vtxcount);
 Vtx *gd_dl_make_vertex(f32 x, f32 y, f32 z, f32 alpha);
 void func_8019FEF0(void);
-void gd_dl_make_triangle(f32 x1, f32 y1, f32 z1, f32 x2, f32 y2, f32 z2, f32 x3, f32 y3, f32 z3);
 void func_801A0038(void);
 void gd_dl_flush_vertices(void);
 void set_render_alpha(f32 arg0);
@@ -106,8 +105,6 @@ s32 setup_view_buffers(const char *name, struct ObjView *view, UNUSED s32 ulx, U
 void gd_init_controllers(void);
 void stub_renderer_6(struct GdObj *obj); //apply to OBJ_TYPE_VIEWS
 long defpup(UNUSED const char *menufmt, ...);
-void menu_cb_control_type(u32);
-void menu_cb_recalibrate_controller(u32);
 void func_801A4438(f32 x, f32 y, f32 z);
 void stub_renderer_10(u32 arg0);
 void stub_draw_label_text(UNUSED char *s);

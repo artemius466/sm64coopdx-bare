@@ -56,7 +56,6 @@ extern u8 *gGdStreamBuffer;
 extern struct MemTracker *start_memtracker(const char *);
 extern u32 stop_memtracker(const char *);
 extern void remove_all_memtrackers(void);
-extern struct MemTracker *get_memtracker_by_index(s32);
 extern void print_all_memtrackers(void);
 extern void print_all_timers(void);
 extern void deactivate_timing(void);
@@ -87,7 +86,6 @@ extern s32 gd_feof(struct GdFile *);
 extern struct GdFile *gd_fopen(const char *, const char *);
 extern s32 gd_fread(s8 *, s32, s32, struct GdFile *);
 extern void gd_fclose(struct GdFile *);
-extern u32 gd_get_file_size(struct GdFile *);
 extern s32 gd_fread_line(char *, u32, struct GdFile *);
 
 #endif // GD_DEBUGGING_UTILS_H

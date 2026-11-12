@@ -64,13 +64,8 @@ extern s16 gRoomOverride;
 
 Gfx *geo_update_projectile_pos_from_parent(s32 callContext, UNUSED struct GraphNode *node, Mat4 mtx);
 Gfx *geo_update_layer_transparency(s32 callContext, struct GraphNode *node, UNUSED void *context);
-#ifdef AVOID_UB
 Gfx *geo_switch_anim_state(s32 callContext, struct GraphNode *node, UNUSED void *context);
 Gfx *geo_switch_area(s32 callContext, struct GraphNode *node, UNUSED void *context);
-#else
-Gfx *geo_switch_anim_state(s32 callContext, struct GraphNode *node);
-Gfx *geo_switch_area(s32 callContext, struct GraphNode *node);
-#endif
 Gfx *geo_choose_area_ext(s32 callContext, UNUSED struct GraphNode *node, Mat4 mtx);
 void obj_update_pos_from_parent_transformation(Mat4 a0, struct Object *a1);
 void obj_apply_scale_to_matrix(struct Object *obj, VEC_OUT Mat4 dst, Mat4 src);
@@ -313,9 +308,7 @@ void cur_obj_spawn_loot_blue_coin(void);
 s32 cur_obj_is_any_player_on_platform(void);
 f32 cur_obj_lateral_dist_from_obj_to_home(struct Object* obj);
 
-#ifndef VERSION_JP
 void cur_obj_spawn_star_at_y_offset(f32 targetX, f32 targetY, f32 targetZ, f32 offsetY);
-#endif
 
 void cur_obj_set_home_once(void);
 s32 get_trajectory_length(Trajectory* trajectory);

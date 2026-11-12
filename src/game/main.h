@@ -39,13 +39,6 @@ extern OSMesg D_80339BEC;
 extern OSMesgQueue gDmaMesgQueue;
 extern OSMesgQueue gSIEventMesgQueue;
 
-#ifdef VERSION_SH
-extern OSThread gRumblePakThread;
-extern OSMesg gRumblePakSchedulerMesgBuf[1];
-extern OSMesg gRumbleThreadVIMesgBuf[1];
-extern OSMesgQueue gRumblePakSchedulerMesgQueue;
-extern OSMesgQueue gRumbleThreadVIMesgQueue;
-#endif
 
 extern s32 gRumblePakPfs; // Actually an OSPfs but we don't have that header yet
 extern struct RumbleData gRumbleDataQueue[3];
@@ -59,8 +52,6 @@ extern s8 gResetTimer;
 extern s8 D_8032C648;
 extern s8 gDebugLevelSelect;
 extern s8 D_8032C650;
-extern s8 gShowProfiler;
-extern s8 gShowDebugText;
 
 void set_vblank_handler(s32 index, struct VblankHandler *handler, OSMesgQueue *queue, OSMesg *msg);
 void dispatch_audio_sptask(struct SPTask *spTask);

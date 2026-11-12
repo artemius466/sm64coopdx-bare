@@ -55,21 +55,6 @@ s8 sDebugPage = DEBUG_PAGE_MIN;
 s8 sNoExtraDebug = FALSE;
 s8 sDebugStringArrPrinted = FALSE;
 s8 sDebugSysCursor = 0;
-s8 sDebugInfoButtonSeqID = 0;
-s16 sDebugInfoButtonSeq[] = { U_CBUTTONS, L_CBUTTONS, D_CBUTTONS, R_CBUTTONS, -1 };
-
-// most likely present in an ifdef DEBUG build. TODO: check DD version?
-void stub_debug_1(void) {
-}
-
-void stub_debug_2(void) {
-}
-
-void stub_debug_3(void) {
-}
-
-void stub_debug_4(void) {
-}
 
 /*
  * These 2 functions are called from the object list processor in regards to cycle
@@ -163,7 +148,6 @@ void print_debug_top_down_normal(const char *str, s32 number) {
     }
 }
 
-#ifndef VERSION_EU
 void print_mapinfo(void) {
     struct Surface *pfloor;
     f32 bgY;
@@ -200,41 +184,6 @@ void print_mapinfo(void) {
         print_debug_top_down_mapinfo("water %d", water);
     }
 }
-#else
-void print_mapinfo(void) {
-    // EU mostly stubbed this function out.
-    struct Surface *pfloor;
-    UNUSED f32 bgY;
-    UNUSED f32 water;
-    UNUSED s32 area;
-    // s32 angY;
-    //
-    // angY = gCurrentObject->oMoveAngleYaw / 182.044000;
-    // area  = ((s32)gCurrentObject->oPosX + 0x2000) / 1024
-    //      + ((s32)gCurrentObject->oPosZ + 0x2000) / 1024 * 16;
-    //
-    bgY = find_floor(gCurrentObject->oPosX, gCurrentObject->oPosY, gCurrentObject->oPosZ, &pfloor);
-    water = find_water_level(gCurrentObject->oPosX, gCurrentObject->oPosZ);
-
-    print_debug_top_down_normal("mapinfo", 0);
-    // print_debug_top_down_mapinfo("area %x", area);
-    // print_debug_top_down_mapinfo("wx   %d", gCurrentObject->oPosX);
-    // print_debug_top_down_mapinfo("wy\t  %d", gCurrentObject->oPosY);
-    // print_debug_top_down_mapinfo("wz   %d", gCurrentObject->oPosZ);
-    // print_debug_top_down_mapinfo("bgY  %d", bgY);
-    // print_debug_top_down_mapinfo("angY %d", angY);
-    //
-    // if(pfloor) // not null
-    //{
-    //    print_debug_top_down_mapinfo("bgcode   %d", pfloor->type);
-    //    print_debug_top_down_mapinfo("bgstatus %d", pfloor->flags);
-    //    print_debug_top_down_mapinfo("bgarea   %d", pfloor->room);
-    //}
-    //
-    // if(gCurrentObject->oPosY < water)
-    //    print_debug_top_down_mapinfo("water %d", water);
-}
-#endif
 
 void print_checkinfo(void) {
     print_debug_top_down_normal("checkinfo", 0);
@@ -333,113 +282,6 @@ void reset_debug_objectinfo(void) {
     update_debug_dpadmask();
 }
 
-/*
- * This function checks for a button sequence (C Up, C Left, C Down,
- * C Right) and then toggles the debug flags from FF to 2; 2 is unused,
- * despite so this has no effect, being called. (unused)
- */
-UNUSED static void check_debug_button_seq(void) {
-    s16 *buttonArr;
-    s16 cButtonMask;
-
-    buttonArr = sDebugInfoButtonSeq;
-
-    if (!(gPlayer1Controller->buttonDown & L_TRIG)) {
-        sDebugInfoButtonSeqID = 0;
-    } else {
-        if ((s16)(cButtonMask = (gPlayer1Controller->buttonPressed & C_BUTTONS))) {
-            if (buttonArr[sDebugInfoButtonSeqID] == cButtonMask) {
-                sDebugInfoButtonSeqID += 1;
-                if (buttonArr[sDebugInfoButtonSeqID] == -1) {
-                    if (gDebugInfoFlags == DEBUG_INFO_FLAG_ALL) {
-                        gDebugInfoFlags = DEBUG_INFO_FLAG_LSELECT;
-                    } else {
-                        gDebugInfoFlags = DEBUG_INFO_FLAG_ALL;
-                    }
-                }
-            } else {
-                sDebugInfoButtonSeqID = 0;
-            }
-        }
-    }
-}
-
-/*
- * Poll the debug info flags and controller for appropriate presses that
- * control sDebugPage's range. (unused)
- */
-UNUSED static void try_change_debug_page(void) {
-    if (gDebugInfoFlags & DEBUG_INFO_FLAG_DPRINT) {
-        if ((gPlayer1Controller->buttonPressed & L_JPAD)
-            && (gPlayer1Controller->buttonDown & (L_TRIG | R_TRIG))) {
-            sDebugPage += 1;
-        }
-        if ((gPlayer1Controller->buttonPressed & R_JPAD)
-            && (gPlayer1Controller->buttonDown & (L_TRIG | R_TRIG))) {
-            sDebugPage -= 1;
-        }
-        if (sDebugPage >= (DEBUG_PAGE_MAX + 1)) {
-            sDebugPage = DEBUG_PAGE_MIN;
-        }
-        if (sDebugPage < DEBUG_PAGE_MIN) {
-            sDebugPage = DEBUG_PAGE_MAX;
-        }
-    }
-}
-
-/*
- * Use the controller to modify gDebugInfo and the sys cursor while
- * using the DPad. L/R DPad modifies gDebugInfo while U/D modifies
- * sDebugSysCursor. This is used to adjust enemy and effect behaviors
- * on the fly. (unused)
- */
-#ifdef VERSION_SH
-static
-#endif
-void try_modify_debug_controls(void) {
-    s32 sp4;
-
-    if (gPlayer1Controller->buttonPressed & Z_TRIG) {
-        sNoExtraDebug ^= 1;
-    }
-    if (!(gPlayer1Controller->buttonDown & (L_TRIG | R_TRIG)) && !sNoExtraDebug) {
-        sp4 = 1;
-        if (gPlayer1Controller->buttonDown & B_BUTTON) {
-            sp4 = 100;
-        }
-
-        if (sDebugInfoDPadMask & U_JPAD) {
-            sDebugSysCursor -= 1;
-            if (sDebugSysCursor < 0) {
-                sDebugSysCursor = 0;
-            }
-        }
-
-        if (sDebugInfoDPadMask & D_JPAD) {
-            sDebugSysCursor += 1;
-            if (sDebugSysCursor >= 8) {
-                sDebugSysCursor = 7;
-            }
-        }
-
-        if (sDebugInfoDPadMask & L_JPAD) {
-            // we allow the player while in this mode to modify the debug controls. This is
-            // so the playtester can adjust enemy behavior and parameters on the fly, since
-            // various behaviors try to update their behaviors from gDebugInfo[4] and [5].
-            if (gPlayer1Controller->buttonDown & A_BUTTON) {
-                gDebugInfo[sDebugPage][sDebugSysCursor] =
-                    gDebugInfoOverwrite[sDebugPage][sDebugSysCursor];
-            } else {
-                gDebugInfo[sDebugPage][sDebugSysCursor] = gDebugInfo[sDebugPage][sDebugSysCursor] - sp4;
-            }
-        }
-
-        if (sDebugInfoDPadMask & R_JPAD) {
-            gDebugInfo[sDebugPage][sDebugSysCursor] = gDebugInfo[sDebugPage][sDebugSysCursor] + sp4;
-        }
-    }
-}
-
 // possibly a removed debug control (TODO: check DD)
 void stub_debug_5(void) {
 }
@@ -522,62 +364,5 @@ void try_do_mario_debug_object_spawn(void) {
             spawn_object_relative(0, 0, 100, 200, gCurrentObject, MODEL_KOOPA_SHELL,
                                   bhvKoopaShellUnderwater);
         }
-    }
-}
-
-// TODO: figure out what this is
-#ifdef VERSION_SH
-static
-#endif
-void debug_print_obj_move_flags(void) {
-#ifndef VERSION_EU // TODO: Is there a better way to diff this? static EU doesn't seem to work.
-    if (gCurrentObject->oMoveFlags & OBJ_MOVE_LANDED) {
-        print_debug_top_down_objectinfo("BOUND   %x", gCurrentObject->oMoveFlags);
-    }
-    if (gCurrentObject->oMoveFlags & OBJ_MOVE_ON_GROUND) {
-        print_debug_top_down_objectinfo("TOUCH   %x", gCurrentObject->oMoveFlags);
-    }
-    if (gCurrentObject->oMoveFlags & OBJ_MOVE_LEFT_GROUND) {
-        print_debug_top_down_objectinfo("TAKEOFF %x", gCurrentObject->oMoveFlags);
-    }
-    if (gCurrentObject->oMoveFlags & OBJ_MOVE_ENTERED_WATER) {
-        print_debug_top_down_objectinfo("DIVE    %x", gCurrentObject->oMoveFlags);
-    }
-    if (gCurrentObject->oMoveFlags & OBJ_MOVE_AT_WATER_SURFACE) {
-        print_debug_top_down_objectinfo("S WATER %x", gCurrentObject->oMoveFlags);
-    }
-    if (gCurrentObject->oMoveFlags & OBJ_MOVE_UNDERWATER_OFF_GROUND) {
-        print_debug_top_down_objectinfo("U WATER %x", gCurrentObject->oMoveFlags);
-    }
-    if (gCurrentObject->oMoveFlags & OBJ_MOVE_UNDERWATER_ON_GROUND) {
-        print_debug_top_down_objectinfo("B WATER %x", gCurrentObject->oMoveFlags);
-    }
-    if (gCurrentObject->oMoveFlags & OBJ_MOVE_IN_AIR) {
-        print_debug_top_down_objectinfo("SKY     %x", gCurrentObject->oMoveFlags);
-    }
-    if (gCurrentObject->oMoveFlags & OBJ_MOVE_OUT_SCOPE) {
-        print_debug_top_down_objectinfo("OUT SCOPE %x", gCurrentObject->oMoveFlags);
-    }
-#endif
-}
-
-// unused, what is this?
-void debug_enemy_unknown(s16 *enemyArr) {
-    // copy b1-b4 over to an unknown s16 array
-    enemyArr[4] = gDebugInfo[DEBUG_PAGE_ENEMYINFO][1];
-    enemyArr[5] = gDebugInfo[DEBUG_PAGE_ENEMYINFO][2];
-    enemyArr[6] = gDebugInfo[DEBUG_PAGE_ENEMYINFO][3];
-    enemyArr[7] = gDebugInfo[DEBUG_PAGE_ENEMYINFO][4];
-}
-
-void debug_position(f32 x, f32 y, f32 z, bool red) {
-    struct Object* player = gMarioStates[0].marioObj;
-    if (player == NULL) { return; }
-    struct Object* obj = spawn_object(player, red ? MODEL_RED_COIN : MODEL_YELLOW_COIN, bhvSparkle);
-    if (obj != NULL) {
-        obj_scale(obj, 0.25f);
-        obj->oPosX = x;
-        obj->oPosY = y;
-        obj->oPosZ = z;
     }
 }

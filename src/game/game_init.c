@@ -5,14 +5,12 @@
 #include "audio/external.h"
 #include "buffers/buffers.h"
 #include "gfx_dimensions.h"
-#include "buffers/gfx_output_buffer.h"
 #include "buffers/framebuffers.h"
 #include "buffers/zbuffer.h"
 #include "engine/level_script.h"
 #include "game_init.h"
 #include "main.h"
 #include "memory.h"
-#include "profiler.h"
 #include "save_file.h"
 #include "seq_ids.h"
 #include "sound_init.h"
@@ -90,9 +88,6 @@ void my_rdp_init(void) {
     gDPSetColorDither(gDisplayListHead++, G_CD_MAGICSQ);
     gDPSetCycleType(gDisplayListHead++, G_CYC_FILL);
 
-#ifdef VERSION_SH
-    gDPSetAlphaDither(gDisplayListHead++, G_AD_PATTERN);
-#endif
     gDPPipeSync(gDisplayListHead++);
 }
 
@@ -221,21 +216,8 @@ void make_viewport_clip_rect(Vp *viewport) {
 void create_task_structure(void) {
     s32 entries = gDisplayListHead - gGfxPool->buffer;
 
-    gGfxSPTask->msgqueue = &D_80339CB8;
-    gGfxSPTask->msg = (OSMesg) 2;
-    gGfxSPTask->task.t.type = M_GFXTASK;
-
-    gGfxSPTask->task.t.ucode_size = SP_UCODE_SIZE; // (this size is ignored)
-    gGfxSPTask->task.t.ucode_data_size = SP_UCODE_DATA_SIZE;
-    gGfxSPTask->task.t.dram_stack = (u64 *) gGfxSPTaskStack;
-    gGfxSPTask->task.t.dram_stack_size = SP_DRAM_STACK_SIZE8;
-    gGfxSPTask->task.t.output_buff = gGfxSPTaskOutputBuffer;
-    gGfxSPTask->task.t.output_buff_size =
-        (u64 *)((u8 *) gGfxSPTaskOutputBuffer + sizeof(gGfxSPTaskOutputBuffer));
     gGfxSPTask->task.t.data_ptr = (u64 *) &gGfxPool->buffer;
     gGfxSPTask->task.t.data_size = entries * sizeof(Gfx);
-    gGfxSPTask->task.t.yield_data_ptr = (u64 *) gGfxSPTaskYieldBuffer;
-    gGfxSPTask->task.t.yield_data_size = OS_YIELD_DATA_SIZE;
 }
 
 /** Starts rendering the scene. */
@@ -249,9 +231,6 @@ void init_render_image(void) {
 /** Ends the master display list. */
 void end_master_display_list(void) {
     draw_screen_borders();
-    if (gShowProfiler) {
-        draw_profiler();
-    }
 
     extern void djui_render(void);
     djui_render();
@@ -293,7 +272,6 @@ void config_gfx_pool(void) {
 
 /** Handles vsync. */
 void display_and_vsync(void) {
-    profiler_log_thread5_time(BEFORE_DISPLAY_LISTS);
     osRecvMesg(&D_80339CB8, &D_80339BEC, OS_MESG_BLOCK);
     if (gGoddardVblankCallback != NULL) {
         gGoddardVblankCallback();
@@ -303,10 +281,8 @@ void display_and_vsync(void) {
     // we only produce interpolated frames now
     //send_display_list(&gGfxPool->spTask);
 
-    profiler_log_thread5_time(AFTER_DISPLAY_LISTS);
     osRecvMesg(&gGameVblankQueue, &D_80339BEC, OS_MESG_BLOCK);
     osViSwapBuffer((void *) PHYSICAL_TO_VIRTUAL(gPhysicalFrameBuffers[sCurrFBNum]));
-    profiler_log_thread5_time(THREAD5_END);
     osRecvMesg(&gGameVblankQueue, &D_80339BEC, OS_MESG_BLOCK);
     if (++sCurrFBNum == 3) {
         sCurrFBNum = 0;
@@ -598,7 +574,6 @@ void thread5_game_loop(UNUSED void *arg) {
 }
 
 void game_loop_one_iteration(void) {
-    profiler_log_thread5_time(THREAD5_START);
 
     // if any controllers are plugged in, start read the data for when
     // read_controller_inputs is called later.
@@ -613,13 +588,6 @@ void game_loop_one_iteration(void) {
     read_controller_inputs();
     levelCommandAddr = level_script_execute(levelCommandAddr);
     display_and_vsync();
-
-    // when debug info is enabled, print the "BUF %d" information.
-    if (gShowDebugText) {
-        // subtract the end of the gfx pool with the display list to obtain the
-        // amount of free space remaining.
-        print_text_fmt_int(180, 20, "BUF %d", gGfxPoolEnd - (u8 *) gDisplayListHead);
-    }
 
     // custom coop hooks
     rng_position_update();

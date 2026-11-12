@@ -254,9 +254,6 @@ u32 mario_update_windy_ground(struct MarioState *m) {
         m->vel[0] += pushSpeed * sins(pushAngle);
         m->vel[2] += pushSpeed * coss(pushAngle);
 
-#ifdef VERSION_JP
-        play_sound(SOUND_ENV_WIND2, m->marioObj->header.gfx.cameraToObject);
-#endif
         return TRUE;
     }
 
@@ -752,9 +749,6 @@ void apply_vertical_wind(struct MarioState *m) {
                 }
             }
 
-#ifdef VERSION_JP
-            play_sound(SOUND_ENV_WIND2, m->marioObj->header.gfx.cameraToObject);
-#endif
         }
     }
 }
@@ -832,11 +826,4 @@ void set_vel_from_pitch_and_yaw(struct MarioState *m) {
     m->vel[0] = m->forwardVel * coss(m->faceAngle[0]) * sins(m->faceAngle[1]);
     m->vel[1] = m->forwardVel * sins(m->faceAngle[0]);
     m->vel[2] = m->forwardVel * coss(m->faceAngle[0]) * coss(m->faceAngle[1]);
-}
-
-void set_vel_from_yaw(struct MarioState *m) {
-    if (!m) { return; }
-    m->vel[0] = m->slideVelX = m->forwardVel * sins(m->faceAngle[1]);
-    m->vel[1] = 0.0f;
-    m->vel[2] = m->slideVelZ = m->forwardVel * coss(m->faceAngle[1]);
 }

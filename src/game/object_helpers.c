@@ -116,17 +116,6 @@ Gfx *geo_update_layer_transparency(s32 callContext, struct GraphNode *node, UNUS
                 objectGraphNode->oAnimState = 1;
             }
 
-#ifdef VERSION_JP
-            if (currentGraphNode->parameter == 10) {
-                if (gDebugInfo[DEBUG_PAGE_ENEMYINFO][3]) {
-                    gDPSetAlphaCompare(dlHead++, G_AC_DITHER);
-                }
-            } else {
-                if (objectGraphNode->activeFlags & ACTIVE_FLAG_DITHERED_ALPHA) {
-                    gDPSetAlphaCompare(dlHead++, G_AC_DITHER);
-                }
-            }
-#else // gDebugInfo accesses were removed in all non-JP versions.
             if (objectOpacity == 0 && segmented_to_virtual(smlua_override_behavior(bhvBowser)) == objectGraphNode->behavior) {
                 objectGraphNode->oAnimState = 2;
             }
@@ -138,7 +127,6 @@ Gfx *geo_update_layer_transparency(s32 callContext, struct GraphNode *node, UNUS
                     gDPSetAlphaCompare(dlHead++, G_AC_DITHER);
                 }
             }
-#endif
         }
 
         gDPSetEnvColor(dlHead++, 255, 255, 255, objectOpacity);
@@ -155,11 +143,7 @@ Gfx *geo_update_layer_transparency(s32 callContext, struct GraphNode *node, UNUS
  * declare it. This is undefined behavior, but harmless in practice due to the
  * o32 calling convention.
  */
-#ifdef AVOID_UB
 Gfx *geo_switch_anim_state(s32 callContext, struct GraphNode *node, UNUSED void *context) {
-#else
-Gfx *geo_switch_anim_state(s32 callContext, struct GraphNode *node) {
-#endif
     struct Object *obj;
     struct GraphNodeSwitchCase *switchCase;
 
@@ -195,11 +179,7 @@ void set_room_override(s16 room) {
 }
 
 //! @bug Same issue as geo_switch_anim_state.
-#ifdef AVOID_UB
 Gfx *geo_switch_area(s32 callContext, struct GraphNode *node, UNUSED void *context) {
-#else
-Gfx *geo_switch_area(s32 callContext, struct GraphNode *node) {
-#endif
     s16 sp26;
     struct Surface *sp20;
     UNUSED struct Object *sp1C =
@@ -2267,12 +2247,10 @@ void cur_obj_update_floor(void) {
         if (floor->type == SURFACE_BURNING) {
             o->oMoveFlags |= OBJ_MOVE_ABOVE_LAVA;
         }
-#ifndef VERSION_JP
         else if (floor->type == SURFACE_DEATH_PLANE) {
             //! This misses SURFACE_VERTICAL_WIND (and maybe SURFACE_WARP)
             o->oMoveFlags |= OBJ_MOVE_ABOVE_DEATH_BARRIER;
         }
-#endif
 
         o->oFloorType = floor->type;
         o->oFloorRoom = floor->room;
@@ -2285,11 +2263,7 @@ void cur_obj_update_floor(void) {
 /* |description|Updates the floor and resolves walls for the current object, setting move flags accordingly|descriptionEnd| */
 void cur_obj_update_floor_and_resolve_wall_collisions(s16 steepSlopeDegrees) {
     if (!o) { return; }
-#ifdef VERSION_JP
-    o->oMoveFlags &= ~OBJ_MOVE_ABOVE_LAVA;
-#else
     o->oMoveFlags &= ~(OBJ_MOVE_ABOVE_LAVA | OBJ_MOVE_ABOVE_DEATH_BARRIER);
-#endif
 
     if (o->activeFlags & (ACTIVE_FLAG_FAR_AWAY | ACTIVE_FLAG_IN_DIFFERENT_ROOM)) {
         cur_obj_update_floor();
@@ -3326,18 +3300,6 @@ s32 cur_obj_update_dialog(struct MarioState* m, s32 actionArg, s32 dialogFlags, 
     if (m->playerIndex != 0) { return 0; }
 
     switch (o->oDialogState) {
-#ifdef VERSION_JP
-        case DIALOG_UNK1_ENABLE_TIME_STOP:
-            //! We enable time stop even if Mario is not ready to speak. This
-            //  allows us to move during time stop as long as Mario never enters
-            //  an action that can be interrupted with text.
-            if (m->health >= 0x100) {
-                gTimeStopState |= TIME_STOP_ENABLED;
-                o->activeFlags |= ACTIVE_FLAG_INITIATED_TIME_STOP;
-                o->oDialogState++;
-            }
-            break;
-#else
         case DIALOG_UNK1_ENABLE_TIME_STOP:
             // Patched :(
             // Wait for Mario to be ready to speak, and then enable time stop
@@ -3350,7 +3312,6 @@ s32 cur_obj_update_dialog(struct MarioState* m, s32 actionArg, s32 dialogFlags, 
             }
             // Fall through so that Mario's action is interrupted immediately
             // after time is stopped
-#endif
 
         case DIALOG_UNK1_INTERRUPT_MARIO_ACTION:
             if (set_mario_npc_dialog(m, actionArg, inContinueDialogFunction) == 2) {
@@ -3408,19 +3369,6 @@ s32 cur_obj_update_dialog_with_cutscene(struct MarioState* m, s32 actionArg, s32
     if (!m->visibleToObjects) { return FALSE; }
 
     switch (o->oDialogState) {
-#ifdef VERSION_JP
-        case DIALOG_UNK2_ENABLE_TIME_STOP:
-            //! We enable time stop even if Mario is not ready to speak. This
-            //  allows us to move during time stop as long as Mario never enters
-            //  an action that can be interrupted with text.
-            if (m->health >= 0x0100) {
-                //gTimeStopState |= TIME_STOP_ENABLED;
-                //o->activeFlags |= ACTIVE_FLAG_INITIATED_TIME_STOP;
-                o->oDialogState++;
-                o->oDialogResponse = 0;
-            }
-            break;
-#else
         case DIALOG_UNK2_ENABLE_TIME_STOP:
             // Wait for Mario to be ready to speak, and then enable time stop
             if (mario_ready_to_speak(m) || m->action == ACT_READING_NPC_DIALOG) {
@@ -3433,7 +3381,6 @@ s32 cur_obj_update_dialog_with_cutscene(struct MarioState* m, s32 actionArg, s32
             }
             // Fall through so that Mario's action is interrupted immediately
             // after time is stopped
-#endif
 
         case DIALOG_UNK2_TURN_AND_INTERRUPT_MARIO_ACTION:
             if (dialogFlags & DIALOG_UNK2_FLAG_0) {
@@ -3676,7 +3623,6 @@ void cur_obj_spawn_loot_blue_coin(void) {
     }
 }
 
-#ifndef VERSION_JP
 /* |description|Temporarily shifts the current object's Y position and spawns a star|descriptionEnd| */
 void cur_obj_spawn_star_at_y_offset(f32 targetX, f32 targetY, f32 targetZ, f32 offsetY) {
     if (!o) { return; }
@@ -3685,7 +3631,6 @@ void cur_obj_spawn_star_at_y_offset(f32 targetX, f32 targetY, f32 targetZ, f32 o
     spawn_default_star(targetX, targetY, targetZ);
     o->oPosY = objectPosY;
 }
-#endif
 
 /* |description|Sets the current object's home position once and marks it as initialized|descriptionEnd| */
 void cur_obj_set_home_once(void) {

@@ -223,33 +223,13 @@ void bhv_act_selector_loop(void) {
 /**
  * Print the course number selected with the wood rgba16 course texture.
  */
-#ifdef VERSION_EU
-void print_course_number(s16 language) {
-#else
 void print_course_number(void) {
-#endif
     u8 courseNum[4];
     create_dl_translation_matrix(MENU_MTX_PUSH, 158.0f, 81.0f, 0.0f);
 
     // Full wood texture in JP & US, lower part of it on EU
     gSPDisplayList(gDisplayListHead++, dl_menu_rgba16_wood_course);
 
-#ifdef VERSION_EU
-    // Change upper part of the wood texture depending of the language defined
-    switch (language) {
-        case LANGUAGE_ENGLISH:
-            gSPDisplayList(gDisplayListHead++, dl_menu_texture_course_upper);
-            break;
-        case LANGUAGE_FRENCH:
-            gSPDisplayList(gDisplayListHead++, dl_menu_texture_niveau_upper);
-            break;
-        case LANGUAGE_GERMAN:
-            gSPDisplayList(gDisplayListHead++, dl_menu_texture_kurs_upper);
-            break;
-    }
-
-    gSPDisplayList(gDisplayListHead++, dl_menu_rgba16_wood_course_end);
-#endif
 
     gSPPopMatrix(gDisplayListHead++, G_MTX_MODELVIEW);
     gSPDisplayList(gDisplayListHead++, dl_rgba16_text_begin);
@@ -266,33 +246,20 @@ void print_course_number(void) {
     gSPDisplayList(gDisplayListHead++, dl_rgba16_text_end);
 }
 
-#ifdef VERSION_JP
-#define ACT_NAME_X 158
-#else
 #define ACT_NAME_X 163
-#endif
 
 /**
  * Print act selector strings, some with special checks.
  */
 void print_act_selector_strings(void) {
-#ifdef VERSION_EU
-    unsigned char myScore[][10] = { {TEXT_MYSCORE}, {TEXT_MY_SCORE_FR}, {TEXT_MY_SCORE_DE} };
-#else
     INGAME_TEXT_COPY(myScore, TEXT_MYSCORE);
-#endif
     INGAME_TEXT_COPY(starNumbers, TEXT_ZERO);
 
     const u8 *currLevelName = get_level_name_sm64(gCurrCourseNum, gCurrLevelNum, gCurrAreaIndex, 1);
     const u8 *selectedActName = get_star_name_sm64(gCurrCourseNum, sSelectedActIndex + 1, 1);
-#ifndef VERSION_EU
     s16 lvlNameX;
     s16 actNameX;
-#endif
     s8 i;
-#ifdef VERSION_EU
-    s16 language = eu_get_language();
-#endif
 
     create_dl_ortho_matrix();
     if ((gOverrideHideActSelectHud & ACT_SELECT_HUD_SCORE) == 0) {
@@ -306,58 +273,35 @@ void print_act_selector_strings(void) {
     gDPSetEnvColor(gDisplayListHead++, 0, 0, 0, 255);
     // Print the "MY SCORE" text if the coin score is more than 0
     if ((gOverrideHideActSelectHud & ACT_SELECT_HUD_SCORE) == 0 && save_file_get_course_coin_score(gCurrSaveFileNum - 1, gCurrCourseNum - 1) != 0) {
-#ifdef VERSION_EU
-        print_generic_string(95, 118, myScore[language]);
-#else
         print_generic_string(102, 118, myScore);
-#endif
     }
 
     if ((gOverrideHideActSelectHud & ACT_SELECT_HUD_LEVEL_NAME) == 0 && currLevelName != NULL) {
-#ifdef VERSION_EU
-        print_generic_string(get_str_x_pos_from_center(160, (u8*) currLevelName + 3, 10.0f), 33, currLevelName + 3);
-#else
         lvlNameX = get_str_x_pos_from_center(160, (u8*) currLevelName + 3, 10.0f);
         print_generic_string(lvlNameX, 33, currLevelName + 3);
-#endif
     }
 
     gSPDisplayList(gDisplayListHead++, dl_ia_text_end);
     if ((gOverrideHideActSelectHud & ACT_SELECT_HUD_COURSE_NUM) == 0) {
-#ifdef VERSION_EU
-        print_course_number(language);
-#else
         print_course_number();
-#endif
     }
 
     gSPDisplayList(gDisplayListHead++, dl_menu_ia8_text_begin);
     gDPSetEnvColor(gDisplayListHead++, 0, 0, 0, 255);
     // Print the name of the selected act.
     if ((gOverrideHideActSelectHud & ACT_SELECT_HUD_ACT_NAME) == 0 && sVisibleStars != 0) {
-#ifdef VERSION_EU
-        print_menu_generic_string(get_str_x_pos_from_center(ACT_NAME_X, (u8*) selectedActName, 8.0f), 81, selectedActName);
-#else
         actNameX = get_str_x_pos_from_center(ACT_NAME_X, (u8*) selectedActName, 8.0f);
         print_menu_generic_string(actNameX, 81, selectedActName);
-#endif
     }
 
     // Print the numbers above each star.
     for (i = 1; i <= sVisibleStars; i++) {
         starNumbers[0] = i;
         s16 x = 0;
-#ifdef VERSION_EU
-        x = 143 - sVisibleStars * 15 + i * 30;
-        if ((gOverrideHideActSelectHud & ACT_SELECT_HUD_STAR_NUM) == 0) {
-            print_menu_generic_string(x, 38, starNumbers);
-        }
-#else
         x = 139 - sVisibleStars * 17 + i * 34;
         if ((gOverrideHideActSelectHud & ACT_SELECT_HUD_STAR_NUM) == 0) {
             print_menu_generic_string(x, 38, starNumbers);
         }
-#endif
         // display player HUD head if they're in that act
         if ((gOverrideHideActSelectHud & ACT_SELECT_HUD_PLAYERS_IN_LEVEL) == 0 && gServerSettings.enablePlayersInLevelDisplay) {
             for (int j = 0; j < MAX_PLAYERS; j++) {
@@ -416,11 +360,7 @@ void print_act_selector_strings(void) {
  * Geo function that Print act selector strings.
  *!@bug: This geo function is missing the third param. Harmless in practice due to o32 convention.
  */
-#ifdef AVOID_UB
 Gfx *geo_act_selector_strings(s16 callContext, UNUSED struct GraphNode *node, UNUSED void *context) {
-#else
-Gfx *geo_act_selector_strings(s16 callContext, UNUSED struct GraphNode *node) {
-#endif
     if (callContext == GEO_CONTEXT_RENDER) {
         print_act_selector_strings();
     }
@@ -448,9 +388,7 @@ s32 lvl_init_act_selector_values_and_stars(UNUSED s32 arg, UNUSED s32 unused) {
     }
 
     //! no return value
-#ifdef AVOID_UB
     return 0;
-#endif
 }
 
 /**
@@ -460,13 +398,9 @@ s32 lvl_init_act_selector_values_and_stars(UNUSED s32 arg, UNUSED s32 unused) {
 s32 lvl_update_obj_and_load_act_button_actions(UNUSED s32 arg, UNUSED s32 unused) {
     if (sActSelectorMenuTimer >= 11) {
         // If any of these buttons are pressed, play sound and go to course act
-#ifndef VERSION_EU
         if ((gPlayer1Controller->buttonPressed & A_BUTTON)
          || (gPlayer1Controller->buttonPressed & START_BUTTON)
          || (gPlayer1Controller->buttonPressed & B_BUTTON)) {
-#else
-        if ((gPlayer1Controller->buttonPressed & (A_BUTTON | START_BUTTON | B_BUTTON | Z_TRIG))) {
-#endif
             star_select_finish_selection();
         }
     }
@@ -486,17 +420,9 @@ s32 lvl_update_obj_and_load_act_button_actions(UNUSED s32 arg, UNUSED s32 unused
 }
 
 void star_select_finish_selection(void) {
-#if defined(VERSION_JP)
-    play_sound(SOUND_MENU_STAR_SOUND, gGlobalSoundSource);
-#else
     if (gMarioState->marioObj) vec3f_copy(gMarioState->marioObj->header.gfx.cameraToObject, gGlobalSoundSource);
     gDelayedInitSound = CHAR_SOUND_LETS_A_GO;
     play_sound(SOUND_MENU_STAR_SOUND, gGlobalSoundSource);
-#endif
-#ifdef VERSION_SH
-    queue_rumble_data(60, 70);
-    func_sh_8024C89C(1);
-#endif
     if (sInitSelectedActNum >= sSelectedActIndex + 1) {
         sLoadedActNum = sSelectedActIndex + 1;
     } else {

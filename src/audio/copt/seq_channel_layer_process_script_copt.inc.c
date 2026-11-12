@@ -157,12 +157,6 @@ void seq_channel_layer_process_script(struct SequenceChannelLayer *layer) {
     f32 temp_f2;
 
 //! Copt: manually inline these functions in the scope of this routine
-#ifdef __sgi
-#pragma inline routine(m64_read_u8)
-#pragma inline routine(m64_read_compressed_u16)
-#pragma inline routine(m64_read_s16)
-#pragma inline routine(get_instrument)
-#endif
 
     sameSound = TRUE;
     if ((*layer).enabled == FALSE) {

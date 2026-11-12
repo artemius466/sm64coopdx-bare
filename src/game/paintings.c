@@ -377,39 +377,6 @@ void remove_from_rippling_list(struct Painting *painting) {
     }
 }
 
-bool painting_is_in_rippling_list(struct Painting *painting) {
-    struct Painting_List_Item *currPaintingItem = &paintingZero;
-    bool found = false;
-    while (found == false) {
-        if (currPaintingItem->painting == painting) {
-            found = true;
-            break;
-        }
-
-        currPaintingItem = currPaintingItem->nextPaintingItem;
-        if (currPaintingItem == &paintingZero) {
-            break;
-        }
-    }
-    return found;
-}
-
-struct Painting_List_Item *get_painting_item_at_index(int index) {
-    if (index < 0) {
-        return NULL;
-    }
-    struct Painting_List_Item *currPaintingItem = &paintingZero;
-    int i = 0;
-    while (i < index) {
-        currPaintingItem = currPaintingItem->nextPaintingItem;
-        i++;
-        if (currPaintingItem == &paintingZero) {
-            return NULL;
-        }
-    }
-    return currPaintingItem;
-}
-
 /**
  * Stop paintings in paintingGroup from rippling if their id is different from *idptr.
  */

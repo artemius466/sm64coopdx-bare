@@ -114,11 +114,6 @@ struct MemTracker *start_memtracker(const char *name) {
     return tracker;
 }
 
-/* @ 23ABE0 -> 23AC28; not called; orig name: Unknown8018C410 */
-void print_most_recent_memtracker_name(void) {
-    gd_printf("%s\n", sActiveMemTrackers[sNumActiveMemTrackers - 1]->name);
-}
-
 /**
  * Records the amount of heap usage after allocating memory.
  */
@@ -153,16 +148,7 @@ void remove_all_memtrackers(void) {
         sMemTrackers[i].total = 0.0f;
     }
 
-#ifdef AVOID_UB
     sNumActiveMemTrackers = 0;
-#endif
-}
-
-/**
- * Returns a memtracker by index rather than name
- */
-struct MemTracker *get_memtracker_by_index(s32 index) {
-    return &sMemTrackers[index];
 }
 
 /**
@@ -307,39 +293,6 @@ void split_timer_ptr(struct GdTimer *timer) {
     timer->start = timer->end;
 }
 
-/* 23B42C -> 23B49C; not called; orig name: Unknown8018CC5C */
-void split_all_timers(void) {
-    s32 i;
-    struct GdTimer *timer;
-
-    for (i = 0; i < ARRAY_COUNT(sTimers); i++) {
-        timer = get_timernum(i);
-        if (timer->name != NULL) {
-            split_timer_ptr(timer);
-        }
-    }
-}
-
-/**
- * Unused - records the start time for all timers
- */
-void start_all_timers(void) {
-    s32 i;
-    struct GdTimer *timer;
-
-    if (!sTimingActive) {
-        return;
-    }
-
-    for (i = 0; i < ARRAY_COUNT(sTimers); i++) {
-        timer = get_timernum(i);
-
-        if (timer->name != NULL) {
-            timer->start = gd_get_ostime();
-        }
-    }
-}
-
 /**
  * Records the current time before performing an operation
  */
@@ -430,15 +383,6 @@ f32 get_scaled_timer_total(const char *name) {
     struct GdTimer *timer = get_timer_checked(name);
 
     return timer->scaledTotal;
-}
-
-/**
- * Unused - returns the raw total for the specified timer
- */
-f32 get_timer_total(const char *name) {
-    struct GdTimer *timer = get_timer_checked(name);
-
-    return (f32) timer->total;
 }
 
 
@@ -743,18 +687,6 @@ void gd_strcpy(char *dst, const char *src) {
     }
 }
 
-/* 23C4AC -> 23C52C; not called; orig name: Unknown8018DCDC */
-void ascii_to_uppercase(char *str) {
-    char c;
-
-    while ((c = *str)) {
-        if (c >= 'a' && c <= 'z') {
-            *str = c & 0xDF;
-        }
-        str++;
-    }
-}
-
 /* 23C52C -> 23C5A8; orig name: func_8018DD5C */
 char *gd_strdup(const char *src) {
     char *dst; // sp24
@@ -912,11 +844,6 @@ s32 gd_fread(s8 *buf, s32 bytes, UNUSED s32 count, struct GdFile *f) {
 /* 23CB38 -> 23CB54; orig name: func_8018E368 */
 void gd_fclose(UNUSED struct GdFile *f) {
     return;
-}
-
-/* 23CB54 -> 23CB70; orig name: func_8018E384 */
-u32 gd_get_file_size(struct GdFile *f) {
-    return f->size;
 }
 
 /* 23CB70 -> 23CBA8; orig name: func_8018E3A0 */

@@ -612,37 +612,6 @@ void hit_object_from_below(struct MarioState *m, UNUSED struct Object *o) {
     if (m->playerIndex == 0) { set_camera_shake_from_hit(SHAKE_HIT_FROM_BELOW); }
 }
 
-UNUSED static u32 unused_determine_knockback_action(struct MarioState *m) {
-    if (!m) { return 0; }
-    u32 bonkAction;
-    s16 angleToObject = mario_obj_angle_to_object(m, m->interactObj);
-    s16 facingDYaw = angleToObject - m->faceAngle[1];
-
-    if (m->forwardVel < 16.0f) {
-        m->forwardVel = 16.0f;
-    }
-
-    m->faceAngle[1] = angleToObject;
-
-    if (facingDYaw >= -0x4000 && facingDYaw <= 0x4000) {
-        m->forwardVel *= -1.0f;
-        if (m->action & (ACT_FLAG_AIR | ACT_FLAG_ON_POLE | ACT_FLAG_HANGING)) {
-            bonkAction = ACT_BACKWARD_AIR_KB;
-        } else {
-            bonkAction = ACT_SOFT_BACKWARD_GROUND_KB;
-        }
-    } else {
-        m->faceAngle[1] += 0x8000;
-        if (m->action & (ACT_FLAG_AIR | ACT_FLAG_ON_POLE | ACT_FLAG_HANGING)) {
-            bonkAction = ACT_FORWARD_AIR_KB;
-        } else {
-            bonkAction = ACT_SOFT_FORWARD_GROUND_KB;
-        }
-    }
-
-    return bonkAction;
-}
-
 u32 determine_knockback_action(struct MarioState *m, RET bool *isPlayerAttack) {
     *isPlayerAttack = false;
 
@@ -1006,9 +975,7 @@ u32 interact_star_or_key(struct MarioState *m, UNUSED u32 interactType, struct O
         }
 
         play_sound(SOUND_MENU_STAR_SOUND, m->marioObj->header.gfx.cameraToObject);
-#ifndef VERSION_JP
         update_mario_sound_and_camera(m);
-#endif
 
         if (grandStar) {
             return set_mario_action(m, ACT_JUMBO_STAR_CUTSCENE, 0);
@@ -1833,14 +1800,6 @@ u32 interact_shock(struct MarioState *m, UNUSED u32 interactType, struct Object 
     return FALSE;
 }
 
-UNUSED static u32 interact_stub(UNUSED struct MarioState *m, UNUSED u32 interactType, struct Object *o) {
-    if (!m || !o) { return FALSE; }
-    if (!(o->oInteractionSubtype & INT_SUBTYPE_DELAY_INVINCIBILITY)) {
-        sDelayInvincTimer = TRUE;
-    }
-    return FALSE;
-}
-
 u32 interact_mr_blizzard(struct MarioState *m, UNUSED u32 interactType, struct Object *o) {
     if (!m || !o) { return FALSE; }
     if (take_damage_and_knock_back(m, o)) {
@@ -1878,9 +1837,7 @@ u32 interact_hit_from_below(struct MarioState *m, UNUSED u32 interactType, struc
             if (o->oInteractionSubtype & INT_SUBTYPE_TWIRL_BOUNCE) {
                 bounce_off_object(m, o, 80.0f);
                 reset_mario_pitch(m);
-#ifndef VERSION_JP
                 play_character_sound(m, CHAR_SOUND_TWIRL_BOUNCE);
-#endif
                 return drop_and_set_mario_action(m, ACT_TWIRLING, 0);
             } else {
                 bounce_off_object(m, o, 30.0f);
@@ -1915,9 +1872,7 @@ u32 interact_bounce_top(struct MarioState *m, UNUSED u32 interactType, struct Ob
             if (o->oInteractionSubtype & INT_SUBTYPE_TWIRL_BOUNCE) {
                 bounce_off_object(m, o, 80.0f);
                 reset_mario_pitch(m);
-#ifndef VERSION_JP
                 play_character_sound(m, CHAR_SOUND_TWIRL_BOUNCE);
-#endif
                 return drop_and_set_mario_action(m, ACT_TWIRLING, 0);
             } else {
                 bounce_off_object(m, o, 30.0f);
@@ -2060,20 +2015,11 @@ u32 interact_pole(struct MarioState *m, UNUSED u32 interactType, struct Object *
     s32 actionId = m->action & ACT_ID_MASK;
     if (actionId >= 0x080 && actionId < 0x0A0) {
         if (!(m->prevAction & ACT_FLAG_ON_POLE) || m->usedObj != o) {
-#ifdef VERSION_SH
-            f32 velConv = m->forwardVel; // conserve the velocity.
-            struct Object *marioObj = m->marioObj;
-            u32 lowSpeed;
-#else
             u32 lowSpeed = (m->forwardVel <= 10.0f);
             struct Object *marioObj = m->marioObj;
-#endif
 
             mario_stop_riding_and_holding(m);
 
-#ifdef VERSION_SH
-            lowSpeed = (velConv <= 10.0f);
-#endif
 
             m->interactObj = o;
             m->usedObj = o;
@@ -2090,11 +2036,7 @@ u32 interact_pole(struct MarioState *m, UNUSED u32 interactType, struct Object *
 
             //! @bug Using m->forwardVel here is assumed to be 0.0f due to the set from earlier.
             //       This is fixed in the Shindou version.
-#ifdef VERSION_SH
-            marioObj->oMarioPoleYawVel = (s32)(velConv * 0x100 + 0x1000);
-#else
             marioObj->oMarioPoleYawVel = (s32)(m->forwardVel * 0x100 + 0x1000);
-#endif
             reset_mario_pitch(m);
             queue_rumble_data_mario(m, 5, 80);
             return set_mario_action(m, ACT_GRAB_POLE_FAST, 0);
@@ -2255,17 +2197,9 @@ u32 mario_can_talk(struct MarioState *m, u32 arg) {
     return FALSE;
 }
 
-#ifdef VERSION_JP
-#define READ_MASK (INPUT_B_PRESSED)
-#else
 #define READ_MASK (INPUT_B_PRESSED | INPUT_A_PRESSED)
-#endif
 
-#ifdef VERSION_JP
-#define SIGN_RANGE 0x38E3
-#else
 #define SIGN_RANGE 0x4000
-#endif
 
 u32 check_read_sign(struct MarioState *m, struct Object *o) {
     if (!m || !o) { return FALSE; }

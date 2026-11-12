@@ -244,9 +244,7 @@ static void racing_penguin_act_show_final_text(void) {
         } else {
             cur_obj_init_animation_with_sound(0);
 
-#ifndef VERSION_JP
             play_penguin_walking_sound(1);
-#endif
 
             o->oForwardVel = 4.0f;
         }
@@ -258,11 +256,7 @@ static void racing_penguin_act_show_final_text(void) {
     } else if (o->oRacingPenguinMarioWon) {
 
     f32* starPos = gLevelValues.starPositions.RacingPenguinStarPos;
-#ifdef VERSION_JP
-        spawn_default_star(starPos[0], starPos[1], starPos[2]);
-#else
         cur_obj_spawn_star_at_y_offset(starPos[0], starPos[1], starPos[2], 200.0f);
-#endif
         o->oRacingPenguinMarioWon = FALSE;
         if (sync_object_is_owned_locally(o->oSyncID)) { network_send_object(o); }
     }

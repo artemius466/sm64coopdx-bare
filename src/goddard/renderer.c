@@ -3,9 +3,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 
-#if defined(VERSION_JP) || defined(VERSION_US)
 #include "prevent_bss_reordering.h"
-#endif
 
 #include "debug_utils.h"
 #include "draw_objects.h"
@@ -86,29 +84,10 @@ struct DynListBankInfo {
 };
 
 // bss
-#if defined(VERSION_EU) || defined(VERSION_SH)
-static OSMesgQueue D_801BE830; // controller msg queue
-static OSMesg D_801BE848[10];
-u8 EUpad1[0x40];
-static OSMesgQueue D_801BE8B0;
-static OSMesgQueue sGdDMAQueue; // @ 801BE8C8
-// static u32 unref_801be870[16];
-// static u32 unref_801be8e0[25];
-// static u32 unref_801be948[13];
-u8 EUpad2[0x64];
-static OSMesg sGdMesgBuf[1]; // @ 801BE944
-u8 EUpad3[0x34];
-static OSMesg sGdDMACompleteMsg; // msg buf for D_801BE8B0 queue
-static OSIoMesg sGdDMAReqMesg;
-static struct ObjView *D_801BE994; // store if View flag 0x40 set
-
-u8 EUpad4[0x88];
-#endif
 static OSContStatus D_801BAE60[4];
 static OSContPad sGdContPads[4];    // @ 801BAE70
 static OSContPad sPrevFrameCont[4]; // @ 801BAE88
 static u8 D_801BAEA0;
-static struct ObjGadget *sTimerGadgets[GD_NUM_TIMERS]; // @ 801BAEA8
 static u32 D_801BAF28;                                 // RAM addr offset?
 static s16 sTriangleBuf[13][8];                          // [[s16; 8]; 13]? vert indices?
 static u8 *sMemBlockPoolBase; // @ 801BB00C
@@ -146,7 +125,6 @@ static s32 sLightId;
 static Hilite sHilites[600];
 static struct GdVec3f D_801BD758;
 static struct GdVec3f D_801BD768; // had to migrate earlier
-static u32 D_801BD774;
 static struct GdObj *sMenuGadgets[9]; // @ 801BD778; d_obj ptr storage? menu?
 static struct ObjView *sDebugViews[2];  // Seems to be a list of ObjViews for displaying debug info
 static struct GdDisplayList *sStaticDl;     // @ 801BD7A8
@@ -160,37 +138,27 @@ static s32 sPickBufPosition;                         // @ 801BE784
 static s16 *sPickBuf;                                // @ 801BE788
 static LookAt D_801BE790[2];
 static LookAt D_801BE7D0[3];
-#if defined(VERSION_JP) || defined(VERSION_US)
 static OSMesgQueue D_801BE830; // controller msg queue
 static OSMesg D_801BE848[10];
 static OSMesgQueue D_801BE8B0;
 static OSMesgQueue sGdDMAQueue; // @ 801BE8C8
 static OSMesg sGdMesgBuf[1]; // @ 801BE944
 static OSMesg sGdDMACompleteMsg; // msg buf for D_801BE8B0 queue
-static struct ObjView *D_801BE994; // store if View flag 0x40 set
-#endif
 
 // data
 static s32 D_801A8674 = 0;
 static s32 D_801A867C = 0;
 static s32 D_801A8680 = 0;
 static f32 sTracked1FrameTime = 0.0f; // @ 801A8684
-static f32 sDynamicsTime = 0.0f;      // @ 801A8688
-static f32 sDLGenTime = 0.0f;         // @ 801A868C
-static f32 sRCPTime = 0.0f;           // @ 801A8690
 static f32 sTimeScaleFactor = 1.0f;   // @ D_801A8694
 static u32 sMemBlockPoolSize = 1;     // @ 801A8698
 static s32 sMemBlockPoolUsed = 0;     // @ 801A869C
 static s32 sTextureCount = 0;  // maybe?
-static struct GdTimer *D_801A86A4 = NULL; // timer for dlgen, dynamics, or rcp
-static struct GdTimer *D_801A86A8 = NULL; // timer for dlgen, dynamics, or rcp
-static struct GdTimer *D_801A86AC = NULL; // timer for dlgen, dynamics, or rcp
 s32 gGdFrameBufNum = 0;                      // @ 801A86B0
 static struct ObjShape *sHandShape = NULL; // @ 801A86B8
 static s32 D_801A86BC = 1;
 static s32 D_801A86C0 = 0; // gd_dl id for something?
 static s32 sMtxParamType = G_MTX_PROJECTION;
-static struct GdVec3f D_801A86CC = { 1.0f, 1.0f, 1.0f };
 static struct ObjView *sActiveView = NULL;  // @ 801A86D8 current view? used when drawing dl
 static struct ObjView *sScreenView = NULL; // @ 801A86DC
 static struct ObjView *D_801A86E0 = NULL;
@@ -615,31 +583,6 @@ static Gfx gd_dl_mario_face_shine[] = {
     gsSPEndDisplayList(),
 };
 
-static Gfx gd_dl_rsp_init[] = {
-    gsSPClearGeometryMode(0xFFFFFFFF),
-    gsSPSetGeometryMode(G_SHADING_SMOOTH | G_SHADE),
-    gsSPEndDisplayList(),
-};
-
-static Gfx gd_dl_rdp_init[] = {
-    gsDPPipeSync(),
-    gsDPSetCombineMode(G_CC_SHADE, G_CC_SHADE),
-    gsDPSetCycleType(G_CYC_1CYCLE),
-    gsDPSetTextureLOD(G_TL_TILE),
-    gsDPSetTextureLUT(G_TT_NONE),
-    gsDPSetTextureDetail(G_TD_CLAMP),
-    gsDPSetTexturePersp(G_TP_PERSP),
-    gsDPSetTextureFilter(G_TF_BILERP),
-    gsDPSetTextureConvert(G_TC_FILT),
-    gsDPSetCombineKey(G_CK_NONE),
-    gsDPSetAlphaCompare(G_AC_NONE),
-    gsDPSetRenderMode(G_RM_OPA_SURF, G_RM_OPA_SURF2),
-    gsDPNoOp(),
-    gsDPSetColorDither(G_CD_MAGICSQ),
-    gsDPPipeSync(),
-    gsSPEndDisplayList(),
-};
-
 float sGdPerspTimer = 1.0;
 
 static Gfx gd_dl_sprite_start_tex_block[] = {
@@ -772,13 +715,6 @@ f64 gd_sqrt_d(f64 x) {
         return 0.0;
     }
     return sqrtf(x);
-}
-
-/**
- * Unused
- */
-f64 stub_renderer_1(UNUSED f64 x) {
-    return 0.0;
 }
 
 /* 249BCC -> 24A19C */
@@ -940,16 +876,6 @@ void *gd_malloc_temp(u32 size) {
     return gd_malloc(size, TEMP_G_MEM_BLOCK);
 }
 
-/* 24A458 -> 24A4A4 */
-void *Unknown8019BC88(u32 size, u32 count) {
-    return gd_malloc_perm(size * count);
-}
-
-/* 24A4A4 -> 24A4DC */
-void *Unknown8019BCD4(u32 size) {
-    return gd_malloc_perm(size);
-}
-
 /* 24A4DC -> 24A598 */
 void draw_indexed_dl(s32 dlNum, s32 gfxIdx) {
     Gfx *dl;
@@ -969,13 +895,6 @@ void branch_cur_dl_to_num(s32 dlNum) {
 
     dl = sGdDLArray[dlNum]->gfx;
     gSPDisplayList(next_gfx(), GD_VIRTUAL_TO_PHYSICAL(dl));
-}
-
-/**
- * Unused (not called)
- */
-Gfx *get_dl_gfx(s32 num) {
-    return sGdDLArray[num]->gfx;
 }
 
 /**
@@ -1043,19 +962,6 @@ void setup_timers(void) {
     stop_timer("dynamics");
 }
 
-/* 24AA40 -> 24AA58 */
-void Unknown8019C270(u8 *buf) {
-    gGdStreamBuffer = buf;
-}
-
-/* 24AA58 -> 24AAA8 */
-void Unknown8019C288(s32 stickX, s32 stickY) {
-    struct GdControl *ctrl = &gGdCtrl; // 4
-
-    ctrl->stickXf = (f32) stickX;
-    ctrl->stickYf = (f32)(stickY / 2);
-}
-
 /* 24AAA8 -> 24AAE0; orig name: func_8019C2D8 */
 void gd_add_to_heap(void *addr, u32 size) {
     // TODO: is this `1` for permanence special?
@@ -1099,19 +1005,6 @@ void gdm_setup(void) {
     reset_cur_dl_indices();
     setup_stars();
     imout();
-}
-
-/* 24AC18 -> 24AC2C */
-void stub_renderer_2(UNUSED u32 a0) {
-}
-
-/* 24AC2C -> 24AC80; not called; orig name: Unknown8019C45C */
-void print_gdm_stats(void) {
-    stop_memtracker("total");
-    gd_printf("\ngdm stats:\n");
-    print_all_memtrackers();
-    mem_stats();
-    start_memtracker("total");
 }
 
 /* 24AC80 -> 24AD14; orig name: func_8019C4B0 */
@@ -1161,17 +1054,6 @@ void gdm_maketestdl(s32 id) {
             fatal_printf("gdm_maketestdl(): unknown dl");
     }
     imout();
-}
-
-/* 24AEB8 -> 24AED0 */
-void set_time_scale(f32 factor) {
-    sTimeScaleFactor = factor;
-}
-
-/* 24AED0 -> 24AF04 */
-void Unknown8019C840(void) {
-    gd_printf("\n");
-    print_all_timers();
 }
 
 /**
@@ -1383,9 +1265,7 @@ struct GdDisplayList *create_child_gdl(s32 id, struct GdDisplayList *srcDl) {
 //! @bug No return statement, despite return value being used.
 //!      Goddard lucked out that `v0` return from alloc_displaylist()
 //!      is not overwriten, as that pointer is what should be returned
-#ifdef AVOID_UB
     return newDl;
-#endif
 }
 
 /* 24B7F8 -> 24BA48; orig name: func_8019D028 */
@@ -1441,18 +1321,6 @@ struct GdDisplayList *new_gd_dl(s32 id, s32 gfxs, s32 verts, s32 mtxs, s32 light
 
     dl->dlptr = NULL;
     return dl;
-}
-
-/* 24BA48 -> 24BABC; not called */
-void gd_rsp_init(void) {
-    gSPDisplayList(next_gfx(), osVirtualToPhysical(&gd_dl_rsp_init));
-    gDPPipeSync(next_gfx());
-}
-
-/* 24BABC -> 24BB30; not called */
-void gd_rdp_init(void) {
-    gSPDisplayList(next_gfx(), osVirtualToPhysical(&gd_dl_rdp_init));
-    gDPPipeSync(next_gfx());
 }
 
 /* 24BB30 -> 24BED8; orig name: func_8019D360 */
@@ -1602,26 +1470,12 @@ s32 gd_enddlsplist_parent(void) {
     return curDlIdx;
 }
 
-/* 24D39C -> 24D3D8 */
-void Unknown8019EBCC(s32 num, uintptr_t gfxptr) {
-    sGdDLArray[num]->gfx = (Gfx *) (GD_LOWER_24(gfxptr) + D_801BAF28);
-}
-
 /* 24D3D8 -> 24D458; orig name: func_8019EC08 */
 u32 new_gddl_from(Gfx *dl, UNUSED s32 arg1) {
     struct GdDisplayList *gddl;
 
     gddl = new_gd_dl(0, 0, 0, 0, 0, 0);
     gddl->gfx = (Gfx *) (GD_LOWER_24((uintptr_t) dl) + D_801BAF28);
-    return gddl->number;
-}
-
-/* 24D458 -> 24D4C4 */
-u32 Unknown8019EC88(Gfx *dl, UNUSED s32 arg1) {
-    struct GdDisplayList *gddl;
-
-    gddl = new_gd_dl(0, 0, 0, 0, 0, 0);
-    gddl->gfx = dl;
     return gddl->number;
 }
 
@@ -1647,14 +1501,6 @@ void gd_dl_load_matrix(Mat4f *mtx) {
     gSPMatrix(next_gfx(), osVirtualToPhysical(&DL_CURRENT_MTX(sCurrentGdDl)),
               sMtxParamType | G_MTX_LOAD | G_MTX_NOPUSH);
     next_mtx();
-}
-
-/**
- * Adds a display list operation that replaces the current matrix with the
- * identity matrix.
- */
-void gd_dl_load_identity_matrix(void) {
-    gSPMatrix(next_gfx(), osVirtualToPhysical(&sIdnMtx), sMtxParamType | G_MTX_LOAD | G_MTX_NOPUSH);
 }
 
 /**
@@ -1851,21 +1697,6 @@ void func_8019FEF0(void) {
         func_801A0038();
     }
     D_801BB018 = 0;
-}
-
-/**
- * Adds a triange to the current display list.
- */
-void gd_dl_make_triangle(f32 x1, f32 y1, f32 z1, f32 x2, f32 y2, f32 z2, f32 x3, f32 y3, f32 z3) {
-    Vtx *vtx;
-
-    vtx = &DL_CURRENT_VTX(sCurrentGdDl);
-    gd_dl_make_vertex(x1, y1, z1, 1.0f);
-    gd_dl_make_vertex(x2, y2, z2, 1.0f);
-    gd_dl_make_vertex(x3, y3, z3, 1.0f);
-
-    gSPVertex(next_gfx(), osVirtualToPhysical(vtx), 3, 0);
-    gSP1Triangle(next_gfx(), 0, 1, 2, 0);
 }
 
 /* 24E808 -> 24E840 */
@@ -2183,42 +2014,10 @@ static void update_render_mode(void) {
     }
 }
 
-/* 250300 -> 250640 */
-void Unknown801A1B30(void) {
-    gDPPipeSync(next_gfx());
-    gd_set_color_fb();
-    gd_dl_set_fill(&sActiveView->colour);
-    gDPFillRectangle(next_gfx(), (u32)(sActiveView->upperLeft.x), (u32)(sActiveView->upperLeft.y),
-                     (u32)(sActiveView->upperLeft.x + sActiveView->lowerRight.x - 1.0f),
-                     (u32)(sActiveView->upperLeft.y + sActiveView->lowerRight.y - 1.0f));
-    gDPPipeSync(next_gfx());
-}
-
-/* 250640 -> 250AE0 */
-void Unknown801A1E70(void) {
-    gDPPipeSync(next_gfx());
-    gDPSetCycleType(next_gfx(), G_CYC_FILL);
-    gDPSetRenderMode(next_gfx(), G_RM_OPA_SURF, G_RM_OPA_SURF2);
-    gd_dl_set_zbuffer_area();
-    gDPSetColorImage(next_gfx(), G_IM_FMT_RGBA, G_IM_SIZ_16b, sActiveView->parent->lowerRight.x,
-                     GD_LOWER_24(sActiveView->parent->zbuf));
-    gDPSetFillColor(next_gfx(), GPACK_ZDZ(G_MAXFBZ, 0) << 16 | GPACK_ZDZ(G_MAXFBZ, 0));
-    gDPFillRectangle(next_gfx(), (u32)(sActiveView->upperLeft.x), (u32)(sActiveView->upperLeft.y),
-                     (u32)(sActiveView->upperLeft.x + sActiveView->lowerRight.x - 1.0f),
-                     (u32)(sActiveView->upperLeft.y + sActiveView->lowerRight.y - 1.0f));
-    gDPPipeSync(next_gfx());
-    gd_set_color_fb();
-}
-
 /* 250AE0 -> 250B30; orig name: func_801A2310 */
 void gd_set_one_cycle(void) {
     gDPSetCycleType(next_gfx(), G_CYC_1CYCLE);
     update_render_mode();
-}
-
-/* 250B30 -> 250B44 */
-void stub_renderer_3(void) {
-    UNUSED u32 pad[4];
 }
 
 /* 250B44 -> 250B58 */
@@ -2408,24 +2207,6 @@ void parse_p1_controller(void) {
     }
 }
 
-void stub_renderer_4(f32 arg0) {
-    return;
-
-    // dead code
-    if (D_801BD768.x * D_801A86CC.x + arg0 * 2.0f > 160.0)
-    {
-        func_801A3370(D_801BD758.x - D_801BD768.x, -20.0f, 0.0f);
-        D_801BD768.x = D_801BD758.x;
-    }
-}
-
-/**
- * Unused
- */
-void Unknown801A32F4(s32 arg0) {
-    D_801BD774 = GD_LOWER_24(arg0) + D_801BAF28;
-}
-
 /* 251AF4 -> 251B40 */
 void func_801A3324(f32 x, f32 y, f32 z) {
     D_801BD768.x = x;
@@ -2442,27 +2223,6 @@ void func_801A3370(f32 x, f32 y, f32 z) {
     D_801BD768.x += x;
     D_801BD768.y += y;
     D_801BD768.z += z;
-}
-
-/**
- * Unused
- */
-void Unknown801A33F8(f32 x, f32 y, f32 z) {
-    gd_dl_mul_trans_matrix(x - D_801BD768.x, y - D_801BD768.y, z - D_801BD768.z);
-
-    D_801BD768.x = x;
-    D_801BD768.y = y;
-    D_801BD768.z = z;
-}
-
-/**
- * Unused
- */
-void Unknown801A347C(f32 x, f32 y, f32 z) {
-    D_801A86CC.x = x;
-    D_801A86CC.y = y;
-    D_801A86CC.z = z;
-    gd_dl_scale(x, y, z);
 }
 
 /* 251CB0 -> 251D44; orig name: func_801A34E0 */
@@ -2583,10 +2343,6 @@ void gd_setproperty(enum GdProperty prop, f32 f1, f32 f2, f32 f3) {
     }
 }
 
-/* 2522B0 -> 2522C0 */
-void stub_renderer_5(void) {
-}
-
 /* 2522C0 -> 25245C */
 void gd_create_ortho_matrix(f32 l, f32 r, f32 b, f32 t, f32 n, f32 f) {
     uintptr_t orthoMtx;
@@ -2695,9 +2451,7 @@ s32 setup_view_buffers(const char *name, struct ObjView *view, UNUSED s32 ulx, U
 //!      doesn't use four of its parameters, this function may have
 //!      had a fair amount of its code commented out. In game, the
 //!      returned value is always 0, so the fix returns that value
-#ifdef AVOID_UB
     return 0;
-#endif
 }
 
 /* 252AF8 -> 252BAC; orig name: _InitControllers */
@@ -2730,24 +2484,6 @@ void stub_renderer_6(UNUSED struct GdObj *obj) {
  */
 long defpup(UNUSED const char *menufmt, ...) {
     return 0;
-}
-
-/**
- * Unused - called when the user picks an item from the "Control Type" menu.
- * Presumably, this would allow switching inputs between controller, keyboard,
- * and mouse.
- *
- * @param itemId  ID of the menu item that was clicked
- *                (1 = "U-64 Analogue Joystick", 2 = "Keyboard", 3 = "Mouse")
- */
-void menu_cb_control_type(UNUSED u32 itemId) {
-}
-
-/**
- * Unused - called when the user clicks the "Re-Calibrate Controller" item from
- * the "Dynamics" menu.
- */
-void menu_cb_recalibrate_controller(UNUSED u32 itemId) {
 }
 
 /* 252C08 -> 252C70 */
@@ -2796,57 +2532,6 @@ s32 gd_gentexture(void *texture, s32 fmt, s32 size, UNUSED u32 arg3, UNUSED u32 
 }
 
 /**
- * Unused (not called)
- */
-void *load_texture_from_file(const char *file, s32 fmt, s32 size, u32 arg3, u32 arg4) {
-    struct GdFile *txFile; // 3c
-    void *texture;         // 38
-    u32 txSize;            // 34
-    u32 i;                 // 30
-    u16 *txHalf;           // 2C
-    u8 buf[3];             // 28
-    u8 alpha;              // 27
-    s32 dl;                // 20
-
-    txFile = gd_fopen(file, "r");
-    if (txFile == NULL) {
-        fatal_print("Cant load texture");
-    }
-    txSize = gd_get_file_size(txFile);
-    texture = gd_malloc_perm(txSize / 3 * 2);
-    if (texture == NULL) {
-        fatal_printf("Cant allocate memory for texture");
-    }
-    txHalf = (u16 *) texture;
-    for (i = 0; i < txSize / 3; i++) {
-        gd_fread((s8 *) buf, 3, 1, txFile);
-        alpha = 0xFF;
-        *txHalf = ((buf[2] >> 3) << 11) | ((buf[1] >> 3) << 6) | ((buf[0] >> 3) << 1) | (alpha >> 7);
-        txHalf++;
-    }
-    gd_printf("Loaded texture '%s' (%d bytes)\n", file, txSize);
-    gd_fclose(txFile);
-    dl = gd_gentexture(texture, fmt, size, arg3, arg4);
-    gd_printf("Generated '%s' (%d) display list ok.\n", file, dl);
-
-    return texture;
-}
-
-/* 252F88 -> 252FAC */
-void Unknown801A47B8(struct ObjView *v) {
-    if (v->flags & VIEW_SAVE_TO_GLOBAL) {
-        D_801BE994 = v;
-    }
-}
-
-void stub_renderer_7(void) {
-}
-
-/* 252FC4 -> 252FD8 */
-void stub_renderer_8(UNUSED u32 arg0) {
-}
-
-/**
  * Unused - called by func_801A520C and Unknown801A5344
  */
 void func_801A4808(void) {
@@ -2889,9 +2574,6 @@ void set_active_view(struct ObjView *v) {
     sActiveView = v;
 }
 
-void stub_renderer_11(void) {
-}
-
 /**
  * Unused - called by func_801A520C
  */
@@ -2916,22 +2598,6 @@ void func_801A4918(void) {
     if (ydiff < sItemsInMenu) {
         sMenuGadgets[ydiff]->drawFlags |= OBJ_HIGHLIGHTED;
     }
-}
-
-/* 2532D4 -> 2533DC */
-void Unknown801A4B04(void) {
-    if (D_801A86AC != NULL) {
-        D_801A86AC->prevScaledTotal = 20.0f;
-    }
-    if (D_801A86A4 != NULL) {
-        D_801A86A4->prevScaledTotal = (f32)((sDLGenTime * 50.0f) + 20.0f);
-    }
-    if (D_801A86A8 != NULL) {
-        D_801A86A8->prevScaledTotal = (f32)((sDLGenTime * 50.0f) + 20.0f);
-    }
-    sDLGenTime = get_scaled_timer_total("dlgen");
-    sRCPTime = get_scaled_timer_total("rcp");
-    sDynamicsTime = get_scaled_timer_total("dynamics");
 }
 
 /* 2533DC -> 253728; orig name: func_801A4C0C */
@@ -2973,46 +2639,6 @@ void update_cursor(void) {
     }
     if (sHandView->upperLeft.y > (sHandView->parent->upperLeft.y + sHandView->parent->lowerRight.y)) {
         sHandView->upperLeft.y = sHandView->parent->upperLeft.y + sHandView->parent->lowerRight.y;
-    }
-}
-
-/* 253728 -> 2538E0 */
-void Unknown801A4F58(void) {
-    register s16 *cbufOff; // a0
-    register s16 *cbufOn;  // a1
-    register u16 *zbuf;    // a2
-    register s16 colour;   // a3
-    register s16 r;        // t0
-    register s16 g;        // t1
-    register s16 b;        // t2
-    register s32 i;        // t3
-
-    cbufOff = sScreenView->colourBufs[gGdFrameBufNum ^ 1];
-    cbufOn = sScreenView->colourBufs[gGdFrameBufNum];
-    zbuf = sScreenView->zbuf;
-
-    for (i = 0; i < (320 * 240); i++) { // L801A4FCC
-        colour = cbufOff[i];
-        if (colour) {
-            r = (s16)(colour >> 11 & 0x1F);
-            g = (s16)(colour >> 6 & 0x1F);
-            b = (s16)(colour >> 1 & 0x1F);
-            if ((r -= 1) < 0) {
-                r = 0;
-            }
-            if ((g -= 1) < 0) {
-                g = 0;
-            }
-            if ((b -= 1) < 0) {
-                b = 0;
-            }
-
-            colour = (s16)(r << 11 | g << 6 | b << 1);
-            cbufOff[i] = colour;
-            cbufOn[i] = colour;
-        } else { // L801A50D8
-            zbuf[i] = 0xFFFC;
-        }
     }
 }
 
@@ -3179,22 +2805,6 @@ void gd_init(void) {
     imout();
 }
 
-/**
- * Unused - reverses the characters in `str`.
- */
-void reverse_string(char *str, s32 len) {
-    char buf[100];
-    s32 i;
-
-    for (i = 0; i < len; i++) {
-        buf[i] = str[len - i - 1];
-    }
-
-    for (i = 0; i < len; i++) {
-        str[i] = buf[i];
-    }
-}
-
 /* 254168 -> 25417C */
 void stub_renderer_12(UNUSED s8 *arg0) {
 }
@@ -3237,32 +2847,6 @@ s32 get_cur_pickbuf_offset(UNUSED s16 *arg0) {
     return sPickBufPosition / 3;
 }
 
-/* 254250 -> 254264 */
-void stub_renderer_15(UNUSED u32 arg0) {
-}
-
-/* 254264 -> 254278 */
-void stub_renderer_16(UNUSED u32 arg0) {
-}
-
-/* 254278 -> 254288 */
-void stub_renderer_17(void) {
-}
-
-/* 254288 -> 2542B0 */
-void *Unknown801A5AB8(s32 texnum) {
-    return sLoadedTextures[texnum];
-}
-
-/* 2542B0 -> 254328 */
-void Unknown801A5AE0(s32 arg0) {
-    D_801BB018 = arg0;
-    if (D_801BB01C != D_801BB018) {
-        branch_cur_dl_to_num(sTextureDisplayLists[arg0]);
-        D_801BB01C = D_801BB018;
-    }
-}
-
 /* 254328 -> 2543B8; orig name: func_801A5B58 */
 void set_vtx_tc_buf(f32 tcS, f32 tcT) {
     sVtxCvrtTCBuf[0] = (s16)(tcS * 512.0f);
@@ -3280,147 +2864,6 @@ union ObjVarVal *cvrt_val_to_kb(union ObjVarVal *dst, union ObjVarVal src) {
 
     temp.f = src.f / 1024.0; //? 1024.0f
     return (*dst = temp, dst);
-}
-
-/* 254450 -> 254560 */
-void Unknown801A5C80(struct ObjGroup *parentGroup) {
-    struct ObjLabel *label;      // 3c
-    struct ObjGroup *debugGroup; // 38
-
-    d_start_group("debugg");
-    label = (struct ObjLabel *) d_makeobj(D_LABEL, 0);
-    d_set_rel_pos(10.0f, 230.0f, 0.0f);
-    d_set_parm_ptr(PARM_PTR_CHAR, gd_strdup("FT %2.2f"));
-    d_add_valptr(NULL, 0, OBJ_VALUE_FLOAT, (uintptr_t) &sTracked1FrameTime);
-    label->unk30 = 3;
-    d_end_group("debugg");
-
-    debugGroup = (struct ObjGroup *) d_use_obj("debugg");
-    make_view("debugview", (VIEW_2_COL_BUF | VIEW_ALLOC_ZBUF | VIEW_1_CYCLE | VIEW_DRAW), 2, 0, 0, 320,
-              240, debugGroup);
-
-    if (parentGroup != NULL) {
-        addto_group(parentGroup, &debugGroup->header);
-    }
-}
-
-/* 254560 -> 2547C8 */
-void Unknown801A5D90(struct ObjGroup *arg0) {
-    struct ObjLabel *mtLabel;  // 254
-    struct ObjGroup *labelgrp; // 250
-    struct ObjView *memview;   // 24c
-    s32 trackerNum;                 // memtracker id and/or i
-    s32 sp244;                 // label y position?
-    s32 sp240;                 // done checking all memtrakcers
-    s32 sp23C;                 // memtracker label made?
-    char mtStatsFmt[0x100];    // 13c
-    char groupId[0x100];       // 3c
-    struct MemTracker *mt;     // 38
-
-    sp240 = FALSE;
-    trackerNum = -1;
-
-    while (!sp240) {
-        sprintf(groupId, "memg%d\n", trackerNum);
-        d_start_group(AsDynName(groupId));
-        sp244 = 20;
-        sp23C = FALSE;
-
-        for (;;) {
-            trackerNum += 1;
-            mt = get_memtracker_by_index(trackerNum);
-
-            if (mt->name != NULL) {
-                sprintf(mtStatsFmt, "%s  %%6.2fk", mt->name);
-                mtLabel = (struct ObjLabel *) d_makeobj(D_LABEL, AsDynName(0));
-                d_set_rel_pos(10.0f, sp244, 0.0f);
-                d_set_parm_ptr(PARM_PTR_CHAR, gd_strdup(mtStatsFmt));
-                d_add_valptr(NULL, 0, OBJ_VALUE_FLOAT, (uintptr_t) &mt->total);
-                mtLabel->unk30 = 3;
-                d_add_valproc(cvrt_val_to_kb);
-                sp23C = TRUE;
-                sp244 += 14;
-                if (sp244 > 200) {
-                    break;
-                }
-            }
-
-            if (trackerNum >= GD_NUM_MEM_TRACKERS) {
-                sp240 = TRUE;
-                break;
-            }
-        }
-
-        d_end_group(AsDynName(groupId));
-        labelgrp = (struct ObjGroup *) d_use_obj(AsDynName(groupId));
-
-        if (sp23C) {
-            memview = make_view("memview",
-                                (VIEW_2_COL_BUF | VIEW_ALLOC_ZBUF | VIEW_UNK_2000 | VIEW_UNK_4000
-                                 | VIEW_1_CYCLE | VIEW_DRAW),
-                                2, 0, 10, 320, 200, labelgrp);
-            memview->colour.r = 0.0f;
-            memview->colour.g = 0.0f;
-            memview->colour.b = 0.0f;
-            addto_group(arg0, &labelgrp->header);
-            memview->flags &= ~VIEW_UPDATE;
-            add_debug_view(memview);
-        }
-    }
-}
-
-/* 2547C8 -> 254AC0 */
-void Unknown801A5FF8(struct ObjGroup *arg0) {
-    struct ObjView *menuview;      // 3c
-    UNUSED struct ObjLabel *label; // 38
-    struct ObjGroup *menugrp;      // 34
-    UNUSED u32 pad2C[2];
-
-    d_start_group("menug");
-    sMenuGadgets[0] = d_makeobj(D_GADGET, "menu0");
-    d_set_obj_draw_flag(OBJ_IS_GRABBALE);
-    d_set_world_pos(5.0f, 0.0f, 0.0f);
-    d_set_scale(100.0f, 20.0f, 0.0f);
-    d_set_type(6);
-    d_set_colour_num(2);
-    label = (struct ObjLabel *) d_makeobj(D_LABEL, AsDynName(0));
-    d_set_rel_pos(5.0f, 18.0f, 0.0f);
-    d_set_parm_ptr(PARM_PTR_CHAR, "ITEM 1");
-    d_add_valptr("menu0", 0x40000, 0, (uintptr_t) NULL);
-
-    sMenuGadgets[1] = d_makeobj(D_GADGET, "menu1");
-    d_set_obj_draw_flag(OBJ_IS_GRABBALE);
-    d_set_world_pos(5.0f, 25.0f, 0.0f);
-    d_set_scale(100.0f, 20.0f, 0.0f);
-    d_set_type(6);
-    d_set_colour_num(4);
-    label = (struct ObjLabel *) d_makeobj(D_LABEL, AsDynName(0));
-    d_set_rel_pos(5.0f, 18.0f, 0.0f);
-    d_set_parm_ptr(PARM_PTR_CHAR, "ITEM 2");
-    d_add_valptr("menu1", 0x40000, 0, (uintptr_t) NULL);
-
-    sMenuGadgets[2] = d_makeobj(D_GADGET, "menu2");
-    d_set_obj_draw_flag(OBJ_IS_GRABBALE);
-    d_set_world_pos(5.0f, 50.0f, 0.0f);
-    d_set_scale(100.0f, 20.0f, 0.0f);
-    d_set_type(6);
-    d_set_colour_num(3);
-    label = (struct ObjLabel *) d_makeobj(D_LABEL, AsDynName(0));
-    d_set_rel_pos(5.0f, 18.0f, 0.0f);
-    d_set_parm_ptr(PARM_PTR_CHAR, "ITEM 3");
-    d_add_valptr("menu2", 0x40000, 0, (uintptr_t) NULL);
-    sItemsInMenu = 3;
-    d_end_group("menug");
-
-    menugrp = (struct ObjGroup *) d_use_obj("menug");
-    menuview = make_view(
-        "menuview", (VIEW_2_COL_BUF | VIEW_ALLOC_ZBUF | VIEW_BORDERED | VIEW_UNK_2000 | VIEW_UNK_4000),
-        2, 100, 20, 110, 150, menugrp);
-    menuview->colour.r = 0.0f;
-    menuview->colour.g = 0.0f;
-    menuview->colour.b = 0.0f;
-    addto_group(arg0, &menugrp->header);
-    sMenuView = menuview;
 }
 
 /* 254AC0 -> 254DFC; orig name: PutSprite */
@@ -3492,143 +2935,8 @@ void view_proc_print_timers(struct ObjView *self) {
     print_all_timers();
 }
 
-/* 254FE4 -> 255600; not called; orig name: Unknown801A6814 */
-void make_timer_gadgets(void) {
-    struct ObjLabel *timerLabel;
-    struct ObjGroup *timerg;
-    UNUSED u32 pad6C;
-    struct ObjView *timersview;
-    struct ObjGadget *bar1;
-    struct ObjGadget *bar2;
-    struct ObjGadget *bar3;
-    struct ObjGadget *bar4;
-    struct ObjGadget *bar5;
-    struct ObjGadget *bar6;
-    struct GdTimer *timer;
-    s32 i;
-    char timerNameBuf[0x20];
-
-    d_start_group("timerg");
-    d_makeobj(D_GADGET, "bar1");
-    d_set_obj_draw_flag(OBJ_IS_GRABBALE);
-    d_set_world_pos(20.0f, 5.0f, 0.0f);
-    d_set_scale(50.0f, 5.0f, 0.0f);
-    d_set_type(4);
-    d_set_parm_f(PARM_F_RANGE_MIN, 0);
-    d_set_parm_f(PARM_F_RANGE_MAX, sTimeScaleFactor);
-    d_add_valptr(NULL, 0, OBJ_VALUE_FLOAT, (uintptr_t) &sTimeScaleFactor);
-    bar1 = (struct ObjGadget *) d_use_obj("bar1");
-    bar1->colourNum = COLOUR_WHITE;
-
-    d_makeobj(D_GADGET, "bar2");
-    d_set_obj_draw_flag(OBJ_IS_GRABBALE);
-    d_set_world_pos(70.0f, 5.0f, 0.0f);
-    d_set_scale(50.0f, 5.0f, 0.0f);
-    d_set_type(4);
-    d_set_parm_f(PARM_F_RANGE_MIN, 0);
-    d_set_parm_f(PARM_F_RANGE_MAX, sTimeScaleFactor);
-    d_add_valptr(NULL, 0, OBJ_VALUE_FLOAT, (uintptr_t) &sTimeScaleFactor);
-    bar2 = (struct ObjGadget *) d_use_obj("bar2");
-    bar2->colourNum = COLOUR_PINK;
-
-    d_makeobj(D_GADGET, "bar3");
-    d_set_obj_draw_flag(OBJ_IS_GRABBALE);
-    d_set_world_pos(120.0f, 5.0f, 0.0f);
-    d_set_scale(50.0f, 5.0f, 0.0f);
-    d_set_type(4);
-    d_set_parm_f(PARM_F_RANGE_MIN, 0);
-    d_set_parm_f(PARM_F_RANGE_MAX, sTimeScaleFactor);
-    d_add_valptr(NULL, 0, OBJ_VALUE_FLOAT, (uintptr_t) &sTimeScaleFactor);
-    bar3 = (struct ObjGadget *) d_use_obj("bar3");
-    bar3->colourNum = COLOUR_WHITE;
-
-    d_makeobj(D_GADGET, "bar4");
-    d_set_obj_draw_flag(OBJ_IS_GRABBALE);
-    d_set_world_pos(170.0f, 5.0f, 0.0f);
-    d_set_scale(50.0f, 5.0f, 0.0f);
-    d_set_type(4);
-    d_set_parm_f(PARM_F_RANGE_MIN, 0);
-    d_set_parm_f(PARM_F_RANGE_MAX, sTimeScaleFactor);
-    d_add_valptr(NULL, 0, OBJ_VALUE_FLOAT, (uintptr_t) &sTimeScaleFactor);
-    bar4 = (struct ObjGadget *) d_use_obj("bar4");
-    bar4->colourNum = COLOUR_PINK;
-
-    d_makeobj(D_GADGET, "bar5");
-    d_set_obj_draw_flag(OBJ_IS_GRABBALE);
-    d_set_world_pos(220.0f, 5.0f, 0.0f);
-    d_set_scale(50.0f, 5.0f, 0.0f);
-    d_set_type(4);
-    d_set_parm_f(PARM_F_RANGE_MIN, 0);
-    d_set_parm_f(PARM_F_RANGE_MAX, sTimeScaleFactor);
-    d_add_valptr(NULL, 0, OBJ_VALUE_FLOAT, (uintptr_t) &sTimeScaleFactor);
-    bar5 = (struct ObjGadget *) d_use_obj("bar5");
-    bar5->colourNum = COLOUR_WHITE;
-
-    d_makeobj(D_GADGET, "bar6");
-    d_set_obj_draw_flag(OBJ_IS_GRABBALE);
-    d_set_world_pos(270.0f, 5.0f, 0.0f);
-    d_set_scale(50.0f, 5.0f, 0.0f);
-    d_set_type(4);
-    d_set_parm_f(PARM_F_RANGE_MIN, 0);
-    d_set_parm_f(PARM_F_RANGE_MAX, sTimeScaleFactor);
-    d_add_valptr(NULL, 0, OBJ_VALUE_FLOAT, (uintptr_t) &sTimeScaleFactor);
-    bar6 = (struct ObjGadget *) d_use_obj("bar6");
-    bar6->colourNum = COLOUR_PINK;
-
-    for (i = 0; i < GD_NUM_TIMERS; i++) {
-        sprintf(timerNameBuf, "tim%d\n", i);
-
-        timer = get_timernum(i);
-
-        d_makeobj(D_GADGET, timerNameBuf);
-        d_set_obj_draw_flag(OBJ_IS_GRABBALE);
-        d_set_world_pos(20.0f, (f32)((i * 15) + 15), 0.0f);
-        d_set_scale(50.0f, 14.0f, 0);
-        d_set_type(4);
-        d_set_parm_f(PARM_F_RANGE_MIN, 0.0f);
-        d_set_parm_f(PARM_F_RANGE_MAX, 1.0f);
-        d_add_valptr(NULL, 0, OBJ_VALUE_FLOAT, (uintptr_t) &timer->prevScaledTotal);
-        sTimerGadgets[i] = (struct ObjGadget *) d_use_obj(timerNameBuf);
-        sTimerGadgets[i]->colourNum = timer->gadgetColourNum;
-
-        timerLabel = (struct ObjLabel *) d_makeobj(D_LABEL, AsDynName(0));
-        d_set_rel_pos(5.0f, 14.0f, 0);
-        d_set_parm_ptr(PARM_PTR_CHAR, (void *) timer->name);
-        d_add_valptr(timerNameBuf, 0x40000, 0, (uintptr_t) NULL);
-        timerLabel->unk30 = 3;
-    }
-
-    d_end_group("timerg");
-    timerg = (struct ObjGroup *) d_use_obj("timerg");
-    timersview = make_view(
-        "timersview", (VIEW_2_COL_BUF | VIEW_ALLOC_ZBUF | VIEW_1_CYCLE | VIEW_MOVEMENT | VIEW_DRAW), 2,
-        0, 10, 320, 270, timerg);
-    timersview->colour.r = 0.0f;
-    timersview->colour.g = 0.0f;
-    timersview->colour.b = 0.0f;
-    timersview->flags &= ~VIEW_UPDATE;
-    timersview->proc = view_proc_print_timers;
-    add_debug_view(timersview);
-
-    return;
-}
-
-/* 255600 -> 255614 */
-void stub_renderer_18(UNUSED u32 a0) {
-}
-
-/* 255614 -> 255628 */
-void stub_renderer_19(UNUSED u32 a0) {
-}
-
 struct GdObj *load_dynlist(struct DynList *dynlist) {
     return proc_dynlist(dynlist);
-}
-
-/**
- * Unused (not called)
- */
-void stub_renderer_20(UNUSED u32 a0) {
 }
 
 /**
@@ -3727,8 +3035,4 @@ void func_801A71CC(struct ObjNet *net) {
             fatal_printf("plane not in any zones\n");
         }
     }
-}
-
-/* 255EB0 -> 255EC0 */
-void stub_renderer_21(void) {
 }

@@ -332,28 +332,6 @@ void create_mtl_gddl_if_empty(struct ObjMaterial *mtl) {
 }
 
 /**
- * A function for checking if an `ObjFace` has bad vertices. These could be either
- * unconverted vertex data, or old vertex structures (like `BetaVtx`)
- * @note Not called
- */
-void check_face_bad_vtx(struct ObjFace *face) {
-    s32 i;
-    struct ObjVertex *vtx;
-
-    for (i = 0; i < face->vtxCount; i++) {
-        vtx = face->vertices[i];
-        // These seem to be checks against bad conversions, or an outdated vertex structure..?
-        if ((uintptr_t) vtx == 39) {
-            gd_printf("bad1\n");
-            return;
-        }
-        if ((uintptr_t) vtx->gbiVerts == 0x3F800000) {
-            fatal_printf("bad2 %x,%d,%d,%d\n", (u32) (uintptr_t) vtx, vtx->scaleFactor, vtx->id, vtx->header.type);
-        }
-    }
-}
-
-/**
  * @brief Convert a numeric index into pointer to a struct GdColour
  *
  * A simple switch case to convert from index @p idx to a pointer to the
@@ -407,18 +385,6 @@ struct GdColour *gd_get_colour(s32 idx) {
         default:
             return NULL;
     }
-}
-
-/**
- * Uncalled function that would render a triangle
- * @note Not called
- */
-void Unknown80178ECC(f32 v0X, f32 v0Y, f32 v0Z, f32 v1X, f32 v1Y, f32 v1Z) {
-    f32 difY = v1Y - v0Y;
-    f32 difX = v1X - v0X;
-    f32 difZ = v1Z - v0Z;
-
-    gd_dl_make_triangle(v0X, v0Y, v0Z, v1X, v1Y, v1Z, v0X + difY * 0.1, v0Y + difX * 0.1, v0Z + difZ * 0.1);
 }
 
 /**
@@ -506,21 +472,6 @@ void draw_rect_fill(s32 color, f32 ulx, f32 uly, f32 lrx, f32 lry) {
 void draw_rect_stroke(s32 color, f32 ulx, f32 uly, f32 lrx, f32 lry) {
     gd_dl_set_fill(gd_get_colour(color));
     gd_draw_border_rect(ulx, uly, lrx, lry);
-}
-
-/**
- * Uncalled function that calls other orphan stub functions.
- * @note Not called
- */
-void Unknown801792F0(struct GdObj *obj) {
-    char objId[32];
-    struct GdVec3f objPos;
-
-    format_object_id(objId, obj);
-    set_cur_dynobj(obj);
-    d_get_world_pos(&objPos);
-    func_801A4438(objPos.x, objPos.y, objPos.z);
-    stub_draw_label_text(objId);
 }
 
 /**
@@ -1091,25 +1042,6 @@ void create_shape_mtl_gddls(struct ObjShape *shape) {
 }
 
 /**
- * Uncalled function that calls a stubbed function (`stub_objects_1()`) for all
- * `GdObj`s in @p grp
- *
- * @param grp Unknown group of objects
- * @return void
- * @note Not called
- */
-void unref_8017AEDC(struct ObjGroup *grp) {
-    register struct ListNode *link = grp->firstMember;
-
-    while (link != NULL) {
-        struct GdObj *obj = link->obj;
-
-        stub_objects_1(grp, obj);
-        link = link->next;
-    }
-}
-
-/**
  * Start a new `GdDisplayList` struct and store its reference index
  * in the input `ObjShape`.
  *
@@ -1119,11 +1051,7 @@ void unref_8017AEDC(struct ObjGroup *grp) {
  * @bug Nothing is returned if the DL is created
  * @note Contains string literals that suggest a removed `printf` call
  */
-#ifdef AVOID_UB
 void
-#else
-s32
-#endif
 create_shape_gddl(struct ObjShape *s) {
     struct ObjShape *shape = s; // 24
     s32 shapedl;                // 20
@@ -1132,11 +1060,7 @@ create_shape_gddl(struct ObjShape *s) {
     create_shape_mtl_gddls(shape);
     shapedl = gd_startdisplist(7);
     if (shapedl == 0) {
-#ifdef AVOID_UB
         return;
-#else
-        return -1;
-#endif
     }
 
     setup_lights();
@@ -1326,20 +1250,6 @@ void map_vertices(struct ObjGroup *facegrp, struct ObjGroup *vtxgrp) {
 }
 
 /**
- * Unselect a grabbable objects
- *
- * @param obj `GdObj` to unselect
- * @return void
- * @note Not Called
- */
-void unpick_obj(struct GdObj *obj) {
-    struct GdObj *why = obj;
-    if (why->drawFlags & OBJ_IS_GRABBALE) {
-        why->drawFlags &= ~(OBJ_PICKED | OBJ_HIGHLIGHTED);
-    }
-}
-
-/**
  * @brief Find the closest object to the cursor on an A-button press
  *
  * This function is applied to all objects in an `ObjView.components` group
@@ -1526,10 +1436,4 @@ void update_view(struct ObjView *view) {
     gd_enddlsplist_parent();
     imout();
     return;
-}
-/**
- * Stub function.
- * @note Not Called
- */
-void stub_draw_objects_1(void) {
 }

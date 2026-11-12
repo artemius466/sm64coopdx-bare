@@ -194,9 +194,6 @@ void bhv_treasure_chest_ship_loop(void) {
                     gEnvironmentRegions[6] = -335;
                     o->activeFlags = 0;
                 }
-#ifdef VERSION_SH
-                reset_rumble_timers_2(2);
-#endif
             }
             break;
     }

@@ -27,10 +27,8 @@ static char gLevelSelect_StageNamesText[64][16] = {
 #undef DEFINE_LEVEL
 
 static u16 gDemoCountdown = 0;
-#ifndef VERSION_JP
 static s16 D_U_801A7C34 = 1;
 static s16 gameOverNotPlayed = 1;
-#endif
 
 static char* get_level_stage_names(s16 levelNum) {
     if (levelNum >= CUSTOM_LEVEL_NUM_START) {
@@ -174,7 +172,6 @@ s16 level_select_input_loop(void) {
 s32 intro_default(void) {
     s32 sp1C = 0;
 
-#ifndef VERSION_JP
     if (D_U_801A7C34 == 1) {
         if (gGlobalTimer < 0x81) {
             play_sound(SOUND_MARIO_HELLO, gGlobalSoundSource);
@@ -183,19 +180,12 @@ s32 intro_default(void) {
         }
         D_U_801A7C34 = 0;
     }
-#endif
     print_intro_text();
 
     if (gPlayer1Controller->buttonPressed & START_BUTTON) {
         play_sound(SOUND_MENU_STAR_SOUND, gGlobalSoundSource);
-#ifdef VERSION_SH
-        queue_rumble_data(60, 70);
-        func_sh_8024C89C(1);
-#endif
         sp1C = 100 + gDebugLevelSelect;
-#ifndef VERSION_JP
         D_U_801A7C34 = 1;
-#endif
     }
     return run_press_start_demo_timer(sp1C);
 }
@@ -203,25 +193,17 @@ s32 intro_default(void) {
 s32 intro_game_over(void) {
     s32 sp1C = 0;
 
-#ifndef VERSION_JP
     if (gameOverNotPlayed == 1) {
         play_sound(SOUND_MARIO_GAME_OVER, gGlobalSoundSource);
         gameOverNotPlayed = 0;
     }
-#endif
 
     print_intro_text();
 
     if (gPlayer1Controller->buttonPressed & START_BUTTON) {
         play_sound(SOUND_MENU_STAR_SOUND, gGlobalSoundSource);
-#ifdef VERSION_SH
-        queue_rumble_data(60, 70);
-        func_sh_8024C89C(1);
-#endif
         sp1C = 100 + gDebugLevelSelect;
-#ifndef VERSION_JP
         gameOverNotPlayed = 1;
-#endif
     }
     return run_press_start_demo_timer(sp1C);
 }

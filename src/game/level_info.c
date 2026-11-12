@@ -12,10 +12,6 @@
 #include "pc/lua/utils/smlua_level_utils.h"
 #include "pc/lua/utils/smlua_text_utils.h"
 
-#ifdef VERSION_EU
-extern s32 gInGameLanguage;
-#include "eu_translation.h"
-#endif
 
 struct Sm64Char {
     const char *str;
@@ -250,14 +246,6 @@ static void capitalize_string_ascii(char *strAscii) {
     }
 }
 
-UNUSED static void capitalize_string_sm64(u8 *str64) {
-    for (; *str64 != 0xFF; str64++) {
-        if (*str64 >= 0x24 && *str64 <= 0x3D) {
-            *str64 -= 26;
-        }
-    }
-}
-
 static void decapitalize_string_ascii(char *strAscii) {
     for (bool decap = false; *strAscii != 0; strAscii++) {
         if (*strAscii >= 'A' && *strAscii <= 'Z') {
@@ -272,30 +260,9 @@ static void decapitalize_string_ascii(char *strAscii) {
     }
 }
 
-UNUSED static void decapitalize_string_sm64(u8 *str64) {
-    for (bool decap = false; *str64 != 0xFF; str64++) {
-        if (*str64 >= 0x0A && *str64 <= 0x23) {
-            if (decap) {
-                *str64 += 26;
-            } else {
-                decap = true;
-            }
-        } else if (*str64 >= 0x3F) {
-            decap = false;
-        }
-    }
-}
-
 void **get_course_name_table(void) {
     void **courseNameTbl = segmented_to_virtual(seg2_course_name_table);
 
-#ifdef VERSION_EU
-    switch (gInGameLanguage) {
-        case LANGUAGE_ENGLISH: courseNameTbl = segmented_to_virtual(course_name_table_eu_en); break;
-        case LANGUAGE_FRENCH:  courseNameTbl = segmented_to_virtual(course_name_table_eu_fr); break;
-        case LANGUAGE_GERMAN:  courseNameTbl = segmented_to_virtual(course_name_table_eu_de); break;
-    }
-#endif
 
     return courseNameTbl;
 }
@@ -303,13 +270,6 @@ void **get_course_name_table(void) {
 void **get_course_name_table_original(void) {
     void **courseNameTblOrig = segmented_to_virtual(seg2_course_name_table_original);
 
-#ifdef VERSION_EU
-    switch (gInGameLanguage) {
-        case LANGUAGE_ENGLISH: courseNameTblOrig = segmented_to_virtual(course_name_table_eu_en_original); break;
-        case LANGUAGE_FRENCH:  courseNameTblOrig = segmented_to_virtual(course_name_table_eu_fr_original); break;
-        case LANGUAGE_GERMAN:  courseNameTblOrig = segmented_to_virtual(course_name_table_eu_de_original); break;
-    }
-#endif
 
     return courseNameTblOrig;
 }
@@ -317,13 +277,6 @@ void **get_course_name_table_original(void) {
 void **get_act_name_table(void) {
     void **actNameTbl = segmented_to_virtual(seg2_act_name_table);
 
-#ifdef VERSION_EU
-    switch (gInGameLanguage) {
-        case LANGUAGE_ENGLISH: actNameTbl = segmented_to_virtual(act_name_table_eu_en); break;
-        case LANGUAGE_FRENCH:  actNameTbl = segmented_to_virtual(act_name_table_eu_fr); break;
-        case LANGUAGE_GERMAN:  actNameTbl = segmented_to_virtual(act_name_table_eu_de); break;
-    }
-#endif
 
     return actNameTbl;
 }
@@ -331,13 +284,6 @@ void **get_act_name_table(void) {
 void **get_act_name_table_original(void) {
     void **actNameTblOrig = segmented_to_virtual(seg2_act_name_table_original);
 
-#ifdef VERSION_EU
-    switch (gInGameLanguage) {
-        case LANGUAGE_ENGLISH: actNameTblOrig = segmented_to_virtual(act_name_table_eu_en_original); break;
-        case LANGUAGE_FRENCH:  actNameTblOrig = segmented_to_virtual(act_name_table_eu_fr_original); break;
-        case LANGUAGE_GERMAN:  actNameTblOrig = segmented_to_virtual(act_name_table_eu_de_original); break;
-    }
-#endif
 
     return actNameTblOrig;
 }

@@ -19,11 +19,7 @@
 #include "pc/debuglog.h"
 
 // TODO: figure out if this shit even works
-#ifdef VERSION_EU
-# define FRAMERATE 25
-#else
 # define FRAMERATE 30
-#endif
 
 static void sleep_ms(int milliseconds) { // cross-platform sleep function
     // from StackOverflow user Bernardo Ramos: https://stackoverflow.com/a/28827188

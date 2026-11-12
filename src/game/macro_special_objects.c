@@ -90,20 +90,6 @@ struct Object* spawn_macro_abs_special(s32 model, const BehaviorScript *behavior
     return newObj;
 }
 
-UNUSED static void spawn_macro_coin_unknown(const BehaviorScript *behavior, s16 a1[]) {
-    struct Object *sp3C;
-    s16 model;
-
-    model = bhvYellowCoin == behavior ? MODEL_YELLOW_COIN : MODEL_NONE;
-
-    sp3C = spawn_object_abs_with_rot(&gMacroObjectDefaultParent, 0, model, behavior,
-                                     a1[1], a1[2], a1[3], 0, convert_rotation(a1[0]), 0);
-    if (sp3C == NULL) { return; }
-
-    sp3C->oUnk1A8 = a1[4];
-    sp3C->oBehParams = (a1[4] & 0xFF) >> 16;
-}
-
 struct LoadedPreset {
     /*0x00*/ const BehaviorScript *behavior;
     /*0x04*/ s16 param; // huh? why does the below function swap these.. just use the struct..
